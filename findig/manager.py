@@ -3,7 +3,7 @@ import sys
 from werkzeug.routing import Rule, RuleFactory
 
 from findig.context import *
-from findig.data import GenericFormatter, GenericParser, GenericErrorHandler
+from findig.data import GenericFormatter, GenericParser, GenericErrorHandler, PreProcessor, PostProcessor
 from findig.resource import Resource, CollectionResource
 
 
@@ -12,6 +12,8 @@ class Manager(RuleFactory):
         self.parser = args.get('parser', GenericParser())
         self.formatter = args.get('formatter', GenericFormatter())
         self.exceptions = args.get('exceptions', GenericErrorHandler())
+        self.prepocessor = args.get('preprocessor', PreProcessor())
+        self.postprocessor = args.get('postprocessor', PostProcessor())
         self.rules = []
 
     def resource(self, **args):
@@ -51,10 +53,22 @@ class Manager(RuleFactory):
     def handle(self, request, resource):
         try:
             # Get the request data
-            request.input = self.parser.parse(request, resource)
+            data = self.parser.parse(request, resource)
 
-            # Let the resource handle the request
-            response = resource(request.method)
+            # Run the preprocessor and check whether it
+            # veto's the request. 
+            response = self.prepocessor.process(data, resource)
+
+            if response is None:
+                # Only call the resource if the pre-processor
+                # doesn't return a response
+                request.input = data
+
+                # Let the resource handle the request
+                response = resource(request.method)
+
+                # Only call the post-processor when the resource is called
+                response = self.postprocessor.process(response, resource)
 
             # format the response and return it
             return self.formatter.format(response, resource)

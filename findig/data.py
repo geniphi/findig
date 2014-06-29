@@ -17,7 +17,7 @@ class _GenericBase(object):
         self.funcs = {}
         self.restricted = {}
 
-    def handler(self, content_type, default=False):
+    def __call__(self, content_type, default=False):
         def decorator(func):
             self.funcs[content_type] = func
             if default:
@@ -177,7 +177,7 @@ class JSONFormatter(GenericFormatter):
     def default(self, code, headers, response, resource):
         if isinstance(response, (list, tuple, dict, str, 
                                  unicode, int, float, 
-                                 long, bool, type(None))):
+                                 long, bool)):
             response = json.dumps(response, indent=self.indent)
         else:
             response = None
@@ -265,3 +265,36 @@ class TemplateFormatter(GenericFormatter):
             template = fh.read()
 
         return template.format(**response)
+
+
+class ProcessorBase(object):
+    def __init__(self):
+        self.funcs = []
+
+    def __call__(self, func):
+        self.funcs.append(func)
+        return func
+
+
+class PreProcessor(ProcessorBase):
+    def process(self, data, resource):
+        # Just a simple matter of running all
+        # the registered functions.
+        for func in self.funcs:
+            retval = func(data, resource)
+
+            # If any function returns a value that is
+            # not None, it is considered to be
+            # response data and returned immediately
+            if retval is not None:
+                return retval
+
+
+class PostProcessor(ProcessorBase):
+    def process(self, response, resource):
+        # Just a simple matter of chaining the response
+        # through all of the the registered functions.
+        for func in self.funcs:
+            response = func(response, resource)
+        else:
+            return response
