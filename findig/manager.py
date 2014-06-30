@@ -12,7 +12,7 @@ class Manager(RuleFactory):
         self.parser = args.get('parser', GenericParser())
         self.formatter = args.get('formatter', GenericFormatter())
         self.exceptions = args.get('exceptions', GenericErrorHandler())
-        self.prepocessor = args.get('preprocessor', PreProcessor())
+        self.preprocessor = args.get('preprocessor', PreProcessor())
         self.postprocessor = args.get('postprocessor', PostProcessor())
         self.rules = []
 
@@ -57,7 +57,7 @@ class Manager(RuleFactory):
 
             # Run the preprocessor and check whether it
             # veto's the request. 
-            response = self.prepocessor.process(data, resource)
+            response = self.preprocessor.process(data, resource)
 
             if response is None:
                 # Only call the resource if the pre-processor
