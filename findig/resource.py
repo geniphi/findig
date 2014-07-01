@@ -8,7 +8,7 @@ from findig.context import url_adapter, request
 class Resource(object):
 
     __slots__ = ('_fget', 'fsave', 'fdel', '_name', 'handlers',
-                 'manager',)
+                 'manager', 'method_hack')
 
     def __init__(self, **args):
         self.fget = args.get('fget')
@@ -17,6 +17,7 @@ class Resource(object):
         self.handlers = args.get('handler', {})
         self.name = args.get('name')
         self.manager = args.get('manager')
+        self.method_hack = args.get('method_hack', False)
 
     def getter(self, fget):
         self.fget = fget

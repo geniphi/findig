@@ -50,6 +50,16 @@ class Manager(RuleFactory):
             args['methods'] = res.get_method_list()
             yield Rule(rule, **args)
 
+            # If the resource requires a method hack
+            # we need to add an extra url rule just for
+            # the delete request.
+            if res.method_hack:
+                fragment = "<any(delete, put, patch):findig__method_hack>"
+                joiner = "" if rule.endswith("/") else "/"
+                rule = joiner.join((rule, fragment))
+                args['methods'] = ["POST", "GET"]
+                yield Rule(rule, **args)
+
     def handle(self, request, resource):
         try:
             # Get the request data
@@ -65,6 +75,11 @@ class Manager(RuleFactory):
                 request.input = data
 
                 # Let the resource handle the request
+                # First apply the method hack:
+                if resource.method_hack and "findig__method_hack" in resource.bind_args:
+                    method = resource.bind_args.pop("findig__method_hack")
+                    request.environ["REQUEST_METHOD"] = method.upper()
+
                 response = resource(request.method)
 
                 # Only call the post-processor when the resource is called
