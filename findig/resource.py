@@ -89,6 +89,8 @@ class Resource(object):
 
         if name is None:
             return u"{0.__module__}.{0.__name__}".format(self.fget)
+        else:
+            return name
 
     @name.setter
     def name(self, name):
