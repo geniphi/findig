@@ -1,1 +1,4 @@
 include DESCRIPTION.rst
+
+# The examples directory
+include examples/*
