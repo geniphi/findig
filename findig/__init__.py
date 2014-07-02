@@ -30,6 +30,7 @@ class App(Manager):
         return response(environ, start_response)
 
     def dispatch(self, request):
+        ctx.app = self
         ctx.request = request
         ctx.url_adapter = adapter = self.url_map.bind_to_environ(
             request.environ)
