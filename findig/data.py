@@ -1,6 +1,9 @@
 import codecs
+from fnmatch import fnmatch
+from itertools import ifilter as filter
 import json
-import os.path
+from os import listdir
+from os.path import join, isfile
 import sys
 
 from werkzeug.datastructures import MIMEAccept
@@ -8,7 +11,7 @@ from werkzeug.exceptions import *
 from werkzeug.http import parse_accept_header, parse_options_header
 from werkzeug.wrappers import BaseResponse, Response
 
-from findig.context import request
+from findig.context import request, ctx
 from findig.resource import BoundResource
 
 
@@ -214,57 +217,88 @@ class JSONErrorHandler(GenericErrorHandler):
 
 
 class TemplateFormatter(GenericFormatter):
-    def __init__(self, template_dir, default_template=None):
+    def __init__(self, search_path=None, default_template_loc=None,
+                 encoding="utf_8"):
         super(TemplateFormatter, self).__init__()
-        self.templates = {}
         self.funcs['text/html'] = self.default
-        self.funcs['text/xhtml'] = self.default
-        self.template_dir = template_dir
-        self.default_template = default_template
+        self.templates = {}
+        self.default_template_loc = default_template_loc
+        self.encoding = encoding
 
-    def template(template_loc):
+        if search_path is None:
+            self.search_path = ["."]
+        elif isinstance(search_path, basestring):
+            self.search_path = [search_path]
+        else:
+            self.search_path = search_path
+
+    def template(self, template_name, methods=None):
         def decorator(res):
-            self.templates[res.name] = template_loc
+            self.templates.setdefault(res.name, {})
+            if methods is None:
+                self.templates[res.name][None] = template_name
+            else:
+                for method in methods:
+                    self.templates[res.name][method.lower()] = template_name
             return res
         return decorator
 
     def default(self, code, headers, response, resource):
-        template_loc = self.find_template(resource)
-        response = self.render(template_loc, resource)
+        if isinstance(response, dict):
+            response["resource"] = resource
+            response["request"] = request
 
-        return Response(response, status=code, headers=headers)
+        return self.render(code, headers, response, resource)
 
-    def find_template(self, resource):
+    def render(self, code, headers, render_args, resource):
+        d, template = self.get_template_location(resource)
+
+        with open(join(d, template), encoding=self.encoding) as fh:
+            s = fh.read()
+
+        page = s.format(**render_args)
+        return Response(page, status=code, headers=headers)
+
+    def get_template_location(self, resource):
+        # Searches for a template in the following order:
+        # {resource_name}(METHOD)
+        # {resource_name}(METHOD).*
+        # {resource_name}
+        # {resource_name}.*
+        # self.default_template_loc
+        search_for = [
+            "{}({})".format(resource.name, request.method),
+            "{}({}).*".format(resource.name, request.method),
+            resource.name,
+            "{}.*".format(resource.name),
+        ]
+        if self.default_template_loc:
+            search_for.append(self.default_template_loc)
+
+        # However, resource has a template name registered, use that
+        # instead.
         if resource.name in self.templates:
-            loc = os.path.join(self.template_dir, self.templates[resource.name])
+            # Get the correct template name for the current request method,
+            # or fallback to None
+            method = request.method.lower()
+            if method in self.templates[resource.name]:
+                search_for = [self.templates[resource.name][method]]
+            elif None in self.templates[resource.name]:
+                search_for = [self.templates[resource.name][None]]
+
+        return self.search_for_template(*search_for)
+
+    def search_for_template(self, *search_for):
+        # Scan the search path for a template with any of the provided
+        # search names.
+        for d in self.search_path:
+            for fname in listdir(d):
+                if isfile(join(d, fname)):
+                    for pattern in search_for:
+                        if fnmatch(fname, pattern):
+                            return d, fname
         else:
-            # Try finding a template in the template directory as the same
-            # name (excluding extension) as the resource.
-            for fname in os.listdir(self.template_dir):
-                if os.path.isfile(os.path.join(self.template_dir, fname)):
-                    name, ext = os.path.splitext(fname)
-                    if name.lower() == resource.name():
-                        loc = os.path.join(self.template_dir, fname)
-                        break
-            else:
-                # Otherwise, fallback to the default template
-                if self.default_template is None:
-                    loc = ""
-                else:
-                    loc = os.path.join(self.template_dir, self.default_template)
-
-            # Determine if the template actually exists. If not,
-            # raise a lookup error
-            if not os.path.isfile(loc):
-                raise LookupError("Template not found: {0}".format(loc or None))
-            else:
-                return loc
-
-    def render(self, template_loc, response):
-        with codecs.open(template_loc, encoding="utf_8") as fh:
-            template = fh.read()
-
-        return template.format(**response)
+            raise LookupError("No suitable template could be found")
 
 
 class ProcessorBase(object):
