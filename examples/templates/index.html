@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title>{% block title %}Jinja Template Demo{% endblock title %}</title>
+    <style type="text/css">
+        body {
+            padding: 10px 20%;
+            font-size: 1.45em;
+            font-family: Georgia, "Times New Roman", Times, serif;
+        }
+        h1 {
+            color: #353535;            
+            font-weight: bold;
+        }
+        p {
+            color: #353535;
+            line-height: 140%;
+        }
+        a {
+            color: #3a9696;
+        }
+        dl
+        {
+	        float: left;
+	        width: 100%;
+	        margin: 1em 0;
+	        padding: 0;
+	        border-bottom: 1px solid #999;
+        }
+	
+        dt
+        {
+	        clear: left;
+	        float: left;
+	        width: 30%;
+	        margin: 0;
+	        padding: 2%;
+	        border-top: 1px solid #999;
+	        font-weight: bold;
+        }
+	
+        dd
+        {
+	        float: left;
+	        width: 62%;
+	        margin: 0;
+	        padding: 2%;
+	        border-top: 1px solid #999;
+        }
+        footer {
+            font-size: 0.7em;
+            padding: 1em 2%;
+            background-color: #bfffff;
+            clear: left;
+            margin-top: 2em;
+        }
+    </style>
+</head>
+<body>
+    {% block content %}
+    <h1>Template Demo</h1>
+    <p>Templates in Findig aren't tied to any particular template
+    engine, although Findig does include a jinja2 based formatter in
+    findig.extras, which was used to render this page. Because the
+    formatter interface is highly customizable however, pretty much
+    any template engine can be used.</p>
+    <p>The easiest way to add support for additional template engines
+    is to subclass <em>findig.data.TemplateFormatter</em>, which is
+    exactly what <em>findig.extras.JinjaFormatter</em> does (in no
+    more than 50 lines of code!).</p>
+    <p>The <a href="/about">information page</a> has some information
+    about the rendering environment.</p>
+    {% endblock content %}
+    <footer>Rendered for resource '{{resource.name|e}}' at {{resource.url|e}}</footer>
+</body>
+</html>
