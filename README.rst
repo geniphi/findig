@@ -24,13 +24,15 @@ Installing
 Findig is pre-release software and is not yet published on PyPI. To
 install the development version, run:
 
-	pip git+https://github.com/geniphi/findig.git
+.. code-block:: bash
+
+	$ pip install git+https://github.com/geniphi/findig.git
 
 Contribute
 ----------
 
-- Issue Tracker: github.com/geniphi/findig/issues
-- Source Code: github.com/geniphi/findig
+- Issue Tracker: http://github.com/geniphi/findig/issues
+- Source Code: http://github.com/geniphi/findig
 
 Support
 -------
