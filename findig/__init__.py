@@ -6,7 +6,9 @@ from werkzeug.routing import Map
 from werkzeug.wrappers import Request
 
 from findig.context import *
+from findig.data import JSONErrorHandler, JSONFormatter, JSONParser
 from findig.manager import Manager
+
 
 with open(join(dirname(__file__), "VERSION")) as fh:
     __version__ = fh.read().strip()
@@ -73,3 +75,11 @@ class App(Manager):
             return self.rebuild_url_map()
         else:
             return self._url_map
+
+
+class JSONApp(App):
+    def __init__(self, **args):
+        args.setdefault("formatter", JSONFormatter())
+        args.setdefault("exceptions", JSONErrorHandler())
+        args.setdefault("parser", JSONParser())
+        super(JSONApp, self).__init__(**args)
