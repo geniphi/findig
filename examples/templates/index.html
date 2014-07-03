@@ -73,6 +73,7 @@
     <p>The <a href="/about">information page</a> has some information
     about the rendering environment.</p>
     {% endblock content %}
-    <footer>Rendered for resource '{{resource.name|e}}' at {{resource.url|e}}</footer>
+    {% block footer %}<footer>Rendered for resource '{{resource.name|e}}' 
+    at {{resource.url|e}}</footer>{% endblock %}
 </body>
 </html>

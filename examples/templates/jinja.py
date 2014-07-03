@@ -2,6 +2,7 @@ from os.path import dirname
 
 from findig import App
 from findig.extras import JinjaFormatter
+from werkzeug.exceptions import HTTPException
 from werkzeug.serving import run_simple
 
 
@@ -35,6 +36,24 @@ def info():
         "python_version": ".".join(map(str, sys.version_info[:3])),
         "template_path": app.formatter.search_path[0],
     }
+
+# We can also set up the application to render error pages from
+# a template.
+@app.exceptions.on(Exception)
+def format_exception(e, exc_type, message, traceback):
+    import traceback
+    traceback.print_exc()
+    args = {"title": "Internal Server Error", 
+            "message": "The server cannot process your request because of "
+                       "an internal error."}
+    return app.formatter.render_template(
+        "error.html", args, 500, {"Content-Type": "text/html"})
+
+@app.exceptions.on(HTTPException)
+def format_http_exception(e, exc_type, message, traceback):
+    args = {"title": e.name, "message": e.description}
+    return app.formatter.render_template(
+        "error.html", args, e.code, dict(e.get_headers()))
 
 if __name__ == '__main__':
      run_simple('localhost', 5002, app, use_reloader=True, use_debugger=True)
