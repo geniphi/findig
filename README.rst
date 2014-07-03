@@ -8,57 +8,37 @@ alternative to Flask_ when implementing RESTful APIs.
 .. _werkzeug: http://werkzeug.pocoo.org
 .. _flask: http://flask.pocoo.org
 
+Using Findig is pretty easy. Take a look at the examples/ directory
+for some usage examples to get you started.
 
-Declaring Resources and attaching routes
-----------------------------------------
+Features
+--------
 
-.. code:: python
+- Easy, declarative support for RESTful API development.
+- Fully customizable input and output types.
+- High level utilities such as resource watchers and caches.
 
-	from klebstoff import App
+Installing
+----------
 
-	app = App()
+Findig is pre-release software and is not yet published on PyPI. To
+install the development version, run:
 
-	@app.route("/u/<int:user>")
-	@app.resource(autoroute=False)
-	# Note: @app.route("/u/<int:user>") can be used as shorthand for
-	# this construct.
-	def user(self, user):
-		# Query the database for the user id
-		# Return the contents of the user resource
-		# Access to app.ctx.request is available
-		return { id: ... }
+	pip git+https://github.com/geniphi/findig.git
 
-	# By default, /u/<user> will only support GET. PATCH and PUT
-	# can be added by adding a persistence function
-	@user.persist
-	def user(self, user, data, method)
-		# Save the data to the database
-		# Access to app.ctx.request is available;
-		# method is equivalent to app.ctx.request.method
-		return user
+Contribute
+----------
 
-	# And DELETE support can be added by adding a deletion
-	# function
-	@user.delete
-	def user(self, user):
-		# Delete the user from the database
-		# Access to app.ctx.request is available
+- Issue Tracker: github.com/geniphi/findig/issues
+- Source Code: github.com/geniphi/findig
 
+Support
+-------
 
-Adding a cache
---------------
+If you're having issues using Findig, please use the issue tracker to let 
+us know about them.
 
-.. code:: python
+License
+-------
 
-	from klebstoff.abc import Cache
-
-	class AppCache(Cache):
-		def get(self, resource_name, args):
-			# Return the resource data if in cache, otherwise
-			# just return None.
-
-		def set(self, resource_name, args, data):
-			# Store the resource data in the cache, associated
-			# with the given resource name and arguments
-
-	app.set_cache(AppCache())
+This project is licensed under the MIT License.
