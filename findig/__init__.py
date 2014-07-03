@@ -1,4 +1,5 @@
 import sys
+from os.path import dirname, join
 
 from werkzeug.local import LocalManager
 from werkzeug.routing import Map
@@ -6,6 +7,9 @@ from werkzeug.wrappers import Request
 
 from findig.context import *
 from findig.manager import Manager
+
+with open(join(dirname(__file__), "VERSION")) as fh:
+    __version__ = fh.read().strip()
 
 
 class App(Manager):

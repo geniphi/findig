@@ -11,7 +11,7 @@ def read(filename, encoding="utf-8"):
 
 setup(
     name="Findig",
-    version="0.1.0.dev1",
+    version=read("findig/VERSION").strip(),
 
     description="A micro-framework for RESTful web applications.",
     long_description=read("DESCRIPTION.rst"),
@@ -40,6 +40,10 @@ setup(
     keywords="web framework werkzeug REST",
 
     packages=find_packages(exclude=["tests*",]),
+
+    package_data={
+        'findig': ['VERSION'],
+    },
 
     install_requires=['werkzeug'],
 
