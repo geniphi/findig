@@ -12,7 +12,7 @@ from werkzeug.http import parse_accept_header, parse_options_header
 from werkzeug.wrappers import BaseResponse, Response
 
 from findig.context import request, ctx
-from findig.resource import BoundResource
+from findig.resource import BoundResource, Resource
 
 
 class _GenericBase(object):
@@ -258,6 +258,17 @@ class TemplateFormatter(GenericFormatter):
 
         page = s.format(**render_args)
         return Response(page, status=code, headers=headers)
+
+    def render_template(self, template, args, code=200, headers=None):
+        # Create a fake resource that points to the template
+        name = "~findig.data/pointer!{0}~".format(template)
+        self.templates[name] = { request.method.lower(): template }
+        resource = Resource(name=name)
+        try:
+            return self.format((args, code, headers or {}), resource)
+        finally:
+            del self.templates[name] 
+            
 
     def get_template_location(self, resource):
         # Searches for a template in the following order:
