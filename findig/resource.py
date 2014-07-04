@@ -48,7 +48,7 @@ class Resource(object):
 
         return methods
 
-    def run_func(self, method, **args):
+    def run_func(self, method, input_data, args):
         method = method.lower()
 
         if method in self.handlers:
@@ -58,15 +58,16 @@ class Resource(object):
             # Get the resource data, update it with the keys
             # from the input, and PUT it to the resource.
             data = dict(self.fget(**args))
-            data.update(request.input.to_dict())
-            request.input = request.parameter_storage_class(data)
-            func = self.fsave
+            data.update(input_data.to_dict())
+            return self.fsave(
+                request.parameter_storage_class(data), **args
+            )
 
         elif method == 'get' and self.fget:
             func = self.fget
 
         elif method == 'put' and self.fsave:
-            func = self.fsave
+            return self.fsave(input_data, **args)
 
         elif method == 'delete' and self.fdel:
             func = self.fdel
@@ -129,9 +130,9 @@ class CollectionResource(Resource):
 
         return methods
 
-    def run_func(self, method, **args):
+    def run_func(self, method, input_data, args):
         if method.lower() == 'post' and self.fcreate is not None:
-            res = self.fcreate(**args)
+            res = self.fcreate(input_data, **args)
             if isinstance(res, BoundResource):
                 # If a BoundResource is returned from a creator,
                 # it points to a new resource, meaning that the
@@ -141,7 +142,9 @@ class CollectionResource(Resource):
                 return res
 
         else:
-            return super(CollectionResource, self).run_func(method, **args)
+            return super(CollectionResource, self).run_func(
+                method, input_data, args
+            )
 
 
 class BoundResource(object):
@@ -156,14 +159,22 @@ class BoundResource(object):
         return u"<BoundResource '{}' ({})>".format(self.res.name, args_str)
 
     def __getattribute__(self, name):
-        if name.startswith('_') or name in self.__slots__ + ('url',):
+        if name.startswith('_') or name in self.__slots__ + ('url', 'data'):
             return super(BoundResource, self).__getattribute__(name)
         else:
             return getattr(self.res, name)
 
     def __call__(self, method='get'):
-        return self.res.run_func(method, **self.bind_args)
+        return self.res.run_func(method, request.input, self.bind_args)
 
     @property
     def url(self):
         return url_adapter.build(self.res, self.bind_args)
+
+    @property
+    def data(self):
+        return self()
+
+    @data.setter
+    def data(self, data):
+        return self.res.run_func("put", data, args)

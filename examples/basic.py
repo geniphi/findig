@@ -1,5 +1,4 @@
 from findig import App
-from findig.context import request
 from findig.data import FormParser
 from werkzeug.wrappers import Response
 from werkzeug.serving import run_simple
@@ -76,11 +75,10 @@ def name():
 # request, but calls the resource getter, potentially hitting the
 # database.
 @name.saver
-def name():
-    # findig.context.request always proxies to the current request.
-    # request.input contains parsed input data for the request, depending
-    # on how app.parser is configured.
-    DATA['name'] = request.input['name']
+def name(data):
+    # For the saver function, the first (and only) positional argument is
+    # the parsed input data for the request. 
+    DATA['name'] = data['name']
 
 # Additionally, a deleter function can teach Findig how to handle
 # DELETE requests.
