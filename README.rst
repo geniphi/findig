@@ -26,7 +26,7 @@ install the development version, run:
 
 .. code-block:: bash
 
-	$ pip install git+https://github.com/geniphi/findig.git
+    $ pip install git+https://github.com/geniphi/findig.git
 
 Contribute
 ----------
