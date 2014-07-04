@@ -12,7 +12,7 @@ Findig is a micro-framework for building web applications. It's perhaps
 comparable to Flask_ and Bottle_ in terms of size and easy of use.
 Continuing in their tradition, it makes it incredibly easy to set up
 a WSGI application, and avoids forcing specific choices on you
-(such as database layer or templating engine). However, Findig is
+(such as a database layer or templating engine). However, Findig is
 geared specifically toward building RESTful web applications.
 
 Where traditional frameworks typically describes web applications in
@@ -22,7 +22,6 @@ views is done behind the scenes. Here's an example of what a
 JSON api application looks like in Findig::
 
     from findig import JSONApp
-    from findig.context import request
     from dbstack.users import get, save, delete
     
     app = JSONApp()
