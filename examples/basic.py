@@ -84,7 +84,8 @@ def name(data):
 # DELETE requests.
 @name.deleter
 def name():
-    del DATA['name']
+    if "name" in DATA:
+        del DATA['name']
 
 
 # This is where we tell Findig how to format all of our responses.
