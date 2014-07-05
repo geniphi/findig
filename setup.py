@@ -49,6 +49,7 @@ setup(
 
     extras_require={
         'redis': ['redis'],
+        'jinja': ['jinja2'],
     }
 
 )
