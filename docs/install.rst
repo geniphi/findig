@@ -22,7 +22,7 @@ You can install the development version of Findig straight from
 Github_. Just run the following pip command (make sure you 
 have git installed on your system)::
 
-    $ pip install git+https://github.com/geniphi/findig/findig.git#egg=Findig
+    $ pip install git+https://github.com/geniphi/findig.git#egg=Findig
 
 This will install the latest version of Findig on your system.
 
@@ -38,7 +38,7 @@ listing them inside square brackets, separated by commas. For example, to
 install the development version of Findig with redis cache support, run 
 this command::
 
-    $ pip install git+https://github.com/geniphi/findig/findig.git#egg=Findig[redis]
+    $ pip install git+https://github.com/geniphi/findig.git#egg=Findig[redis]
 
 And pip will install Findig along with all the requirements necessary
 for the extra feature to work.
@@ -59,7 +59,7 @@ The source code for Findig is hosted on Github_. If you have Git
 installed, you can clone the repository straight to your hard drive
 from a command shell::
 
-    $ git clone git://github.com/geniphi/findig/findig.git
+    $ git clone git://github.com/geniphi/findig.git
 
 Alternatively, you can download a source tarball_ or zipball_, both of 
 which will contain the latest source code from the repository.
