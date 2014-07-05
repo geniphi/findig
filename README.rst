@@ -44,3 +44,10 @@ License
 -------
 
 This project is licensed under the MIT License.
+
+Documentation
+-------------
+
+This project is documented at `findig@readthedocs <rtd>`_
+
+.. rtd: http://findig.rtfd.org/
