@@ -31,6 +31,13 @@ class Resource(object):
         self.fdel = fdel
         return self
 
+    def handler(self, *methods):
+        def decorator(func):
+            for method in map(str.lower, methods):
+                self.handlers[method] = func
+            return func
+        return decorator
+
     def get_method_list(self):
         methods = set(self.handlers)
 
