@@ -38,6 +38,23 @@ class Resource(object):
             return func
         return decorator
 
+    def collection(self, *bindargs, **kwbindargs):
+        for ba in bindargs:
+            kwbindargs.setdefault(ba, ba)
+
+        def decorator(res):
+            if isinstance(res, Resource):
+                if not isinstance(res, CollectionResource):
+                    raise ValueError("A collection resource is required.")
+            else:
+                res = CollectionResource(fget=res)
+
+            res.collects = self, kwbindargs
+            return res
+
+        return decorator
+
+
     def get_method_list(self):
         methods = set(self.handlers)
 
@@ -117,28 +134,45 @@ class Resource(object):
 
 
 class CollectionResource(Resource):
-    __slots__ = ("fcreate",)
+    __slots__ = ("fcreate", "autodelete", "_collects")
 
     def __init__(self, **args):
         super(CollectionResource, self).__init__(**args)
         self.fcreate = args.get("fcreate")
+        self.collects = args.get("collects")
+        self.autodelete = args.get("autodelete", True)
 
     def creator(self, fcreate):
         self.fcreate = fcreate
         return self
 
     def get_method_list(self):
-        methods = []
-        
+        methods = set()
+                    
         if self.fcreate is not None:
-            methods.append('post')
+            methods.add('post')
 
-        methods.extend(super(CollectionResource, self).get_method_list())
+        # If the resource that we're collecting has been specified
+        # We can automatically handle POST requests for the collection
+        # by calling PUT collected resource.
+        # We can also support DELETE requests with URL arguments if
+        # configured.
+        elif self.collects:
+            atom, _ = self.collects
+
+            if atom.fsave is not None:
+                methods.add('post')
+
+            if atom.fdel is not None and self.autodelete:
+                methods.add('delete')
+
+        methods.update(super(CollectionResource, self).get_method_list())
 
         return methods
 
     def run_func(self, method, input_data, args):
-        if method.lower() == 'post' and self.fcreate is not None:
+        method = method.lower()
+        if method == 'post' and self.fcreate is not None:
             res = self.fcreate(input_data, **args)
             if isinstance(res, BoundResource):
                 # If a BoundResource is returned from a creator,
@@ -148,10 +182,45 @@ class CollectionResource(Resource):
             else:
                 return res
 
+        elif (method == 'post' and 
+              self.collects is not None and 
+              self.collects[0].fsave is not None):
+            resource, bind_args = self.collects
+
+            for name in bind_args:
+                args[name] = input_data[bind_args[name]]
+
+            return resource.run_func('put', input_data, args)
+
+        elif (method == 'delete' and
+              self.collects is not None and
+              self.collects[0].fdel is not None and
+              self.autodelete):
+
+            resource, bind_args = self.collects
+
+            for name in bind_args:
+                args[name] = request.args[bind_args[name]]
+
+            return resource.run_func('delete', input_data, args)
+
+
         else:
             return super(CollectionResource, self).run_func(
                 method, input_data, args
             )
+
+    @property
+    def collects(self):
+        return self._collects
+
+    @collects.setter
+    def collects(self, collects):
+        if collects is None:
+            self._collects = collects
+        else:
+            res, bind_args = collects
+            self._collects = res, bind_args
 
 
 class BoundResource(object):
