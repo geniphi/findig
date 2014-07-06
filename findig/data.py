@@ -2,6 +2,7 @@ import codecs
 from fnmatch import fnmatch
 from itertools import ifilter as filter
 import json
+from logging import getLogger
 from os import listdir
 from os.path import join, isfile
 import sys
@@ -163,12 +164,17 @@ class FormParser(GenericParser):
 
 class JSONParser(GenericParser):
     def __init__(self):
-        super(FormParser, self).__init__()
+        super(JSONParser, self).__init__()
         self.funcs['application/json'] = self.default
 
     def default(self, request, content_type, options):
-        data = json.load(request.stream, encoding=options.get('charset', 'utf_8'))
-        return request.parameter_storage_class(data)
+        byte_data = request.data or b"{}"
+        try:
+            data = json.loads(byte_data, encoding=options.get('charset', 'utf_8'))
+        except ValueError as e:
+            raise BadRequest("Could not parse JSON: {0".format(e))
+        else:
+            return request.parameter_storage_class(data)
 
 
 class JSONFormatter(GenericFormatter):
@@ -197,22 +203,23 @@ class JSONErrorHandler(GenericErrorHandler):
         code = 500
         headers = {}
 
-        try:
-            raise
-        except HTTPException:
+        if issubclass(exc_type, HTTPException):
             if e.response is not None:
                 return e.response
 
-            d = {"error": e.description}
-
-            r = e.get_response(request)            
+            d = {'error': e.description}
+            r = e.get_response(request)
             code = r.status
             headers = r.headers
 
             del headers['Content-Length']
 
-        response = None if d is None else json.dumps(d, indent=self.indent)
+        else:
+            log = getLogger("{}.JSONErrorHandler".format(__name__))
+            log.exception("Internal Application Error")
+            d = {'error': "An internal application error has been logged."}
 
+        response = None if d is None else json.dumps(d, indent=self.indent)
         return Response(response, content_type="application/json", status=code, headers=headers)
 
 
