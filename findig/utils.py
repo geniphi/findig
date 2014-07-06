@@ -1,40 +1,25 @@
 import traceback
 
-from findig.data import ProcessorBase
+from findig.data import PreProcessor, PostProcessor
 from findig.context import request
 
 def install_preprocessor(manager, func):
-    if isinstance(manager.preprocessor, ProcessorBase):
-        manager.preprocessor.funcs.insert(0, func)
-        # Well that was easy.
-    else:
-        # We have to create a wrapper preprocessor that will call both
-        # func as well as the old preprocessor
-        old_processor = manager.preprocessor.process
-        class p(object):
-            def process(self, data, resource):
-                retval = func(data, resource)
+    if not isinstance(manager.preprocessor, PreProcessor):
+        manager.preprocessor = PreProcessor()
+        manager.preprocessor(manager.preprocessor.process)
 
-                if retval is None:
-                    retval = old_processor(data, resource)
+    manager.preprocessor.funcs.insert(0, func)
 
-                return retval
-        manager.preprocessor = p()
 
-def install_postprocessor(manager, func):
-    if isinstance(manager.postprocessor, ProcessorBase):
-        manager.postprocessor.funcs.insert(0, func)
-        # Well that was easy.
-    else:
-        # We have to create a wrapper postprocessor that will call both
-        # func as well as the old postprocessor
-        old_processor = manager.postprocessor.process
-        class p(object):
-            def process(self, response, resource):
-                response = func(response, resource)
-                response = old_processor(response, resource)
-                return response
-        manager.postprocessor = p()
+def install_postprocessor(manager, func, formatted=False):
+    name = 'format_postprocessor' if formatted else 'postprocessor'
+
+    if not isinstance(getattr(manager, name), PostProcessor):
+        processor = PostProcessor()
+        processor(getattr(manager, name).process)
+        setattr(manager, name, processor)
+
+    getattr(manager, name).funcs.insert(0, func)
 
 
 class Watcher(object):
