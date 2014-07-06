@@ -50,4 +50,4 @@ Documentation
 
 This project is documented at `findig@readthedocs <rtd>`_
 
-.. rtd: http://findig.rtfd.org/
+.. _rtd: http://findig.rtfd.org/
