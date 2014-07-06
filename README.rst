@@ -48,6 +48,5 @@ This project is licensed under the MIT License.
 Documentation
 -------------
 
-This project is documented at `findig@readthedocs <rtd>`_
-
-.. _rtd: http://findig.rtfd.org/
+This project is documented at 
+`findig@readthedocs <http://findig.rtfd.org/>`_.
