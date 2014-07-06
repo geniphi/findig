@@ -174,6 +174,14 @@ class BoundResource(object):
     def __call__(self, method='get'):
         return self.res.run_func(method, request.input, self.bind_args)
 
+    def __eq__(self, other):
+        if isinstance(other, BoundResource):
+            return super(BoundResource, self).__eq__(other)
+        elif isinstance(other, Resource):
+            return self.res == other
+        else:
+            return NotImplemented
+
     @property
     def url(self):
         return url_adapter.build(self.res, self.bind_args)
