@@ -1,6 +1,7 @@
 import sys
 
 from werkzeug.routing import Rule, RuleFactory
+from werkzeug.wrappers import BaseResponse
 
 from findig.context import *
 from findig.data import GenericFormatter, GenericParser, GenericErrorHandler, PreProcessor, PostProcessor
@@ -14,6 +15,8 @@ class Manager(RuleFactory):
         self.exceptions = args.get('exceptions', GenericErrorHandler())
         self.preprocessor = args.get('preprocessor', PreProcessor())
         self.postprocessor = args.get('postprocessor', PostProcessor())
+        self.format_postprocessor = args.get('format_postprocessor',
+                                             PostProcessor())
         self.rules = []
 
     def resource(self, **args):
@@ -69,7 +72,10 @@ class Manager(RuleFactory):
             # veto's the request. 
             response = self.preprocessor.process(data, resource)
 
-            if response is None:
+            if isinstance(response, BaseResponse):
+                return response
+
+            elif response is None:
                 # Only call the resource if the pre-processor
                 # doesn't return a response
                 request.input = data
@@ -86,7 +92,8 @@ class Manager(RuleFactory):
                 response = self.postprocessor.process(response, resource)
 
             # format the response and return it
-            return self.formatter.format(response, resource)
+            response = self.formatter.format(response, resource)
+            return self.format_postprocessor.process(response, resource)
 
         except Exception as e:
             tp, m, tb = sys.exc_info()
