@@ -1,3 +1,4 @@
+from functools import partial
 import sys
 
 from werkzeug.routing import Rule, RuleFactory
@@ -6,6 +7,7 @@ from werkzeug.wrappers import BaseResponse
 from findig.context import *
 from findig.data import GenericFormatter, GenericParser, GenericErrorHandler, PreProcessor, PostProcessor
 from findig.resource import Resource, CollectionResource
+from findig.utils import DelayMapping
 
 
 class Manager(RuleFactory):
@@ -65,8 +67,14 @@ class Manager(RuleFactory):
 
     def handle(self, request, resource):
         try:
-            # Get the request data
-            data = self.parser.parse(request, resource)
+            # Set the parser function on the context so that the request
+            # input property can get to it later
+            ctx._parser = partial(self.parser.parse, request, resource)
+
+            # Create a proxy to the input data; we do it this way because
+            # we don't want to parse the data unless its actually needed
+            # (i.e. until something actually tries to access it).
+            data = DelayMapping(lambda: request.input)
 
             # Run the preprocessor and check whether it
             # veto's the request. 
@@ -76,17 +84,13 @@ class Manager(RuleFactory):
                 return response
 
             elif response is None:
-                # Only call the resource if the pre-processor
-                # doesn't return a response
-                request.input = data
-
                 # Let the resource handle the request
                 # First apply the method hack:
                 if resource.method_hack and "findig__method_hack" in resource.bind_args:
                     method = resource.bind_args.pop("findig__method_hack")
                     request.environ["REQUEST_METHOD"] = method.upper()
 
-                response = resource(request.method)
+                response = resource(request.method, data)
 
                 # Only call the post-processor when the resource is called
                 response = self.postprocessor.process(response, resource)

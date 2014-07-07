@@ -1,3 +1,4 @@
+from collections import Mapping
 import traceback
 
 from findig.data import PreProcessor, PostProcessor
@@ -159,3 +160,45 @@ class Cache(object):
 
     def __delitem__(self, key):
         del self.data[key]
+
+
+class DelayMapping(Mapping):
+    """
+    A proxy that takes a function that returns a mapping, and delays
+    calling it until the first time an mapping function is called
+    on the proxy.
+    """
+
+    def __init__(self, fgetmap):
+        self.fgetmap = fgetmap
+
+    def __getitem__(self, item):
+        m = self.__replace_methods()
+        return m[item]
+
+    def __iter__(self):
+        m = self.__replace_methods()
+        return iter(m)
+
+    def __len__(self):
+        m = self.__replace_methods()
+        return len(m)
+
+    def __replace_methods(self):
+        m = self.fgetmap()
+        self.__getitem__ = m.__getitem__
+        self.__iter__ = m.__iter__
+        self.__len__ = m.__len__
+
+        # Hack for werkzeug storage classes
+        if hasattr(m, 'as_dict'):
+            self.as_dict = m.as_dict
+
+        return m
+
+    def as_dict(self):
+        m = self.__replace_methods()
+        if hasattr(m, 'as_dict'):
+            return m.as_dict()
+        else:
+            return dict(self)

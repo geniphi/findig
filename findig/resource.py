@@ -240,8 +240,12 @@ class BoundResource(object):
         else:
             return getattr(self.res, name)
 
-    def __call__(self, method='get'):
-        return self.res.run_func(method, request.input, self.bind_args)
+    def __call__(self, method='get', data=None):
+        return self.res.run_func(
+            method, 
+            data if data is not None else {}, 
+            self.bind_args
+        )
 
     def __eq__(self, other):
         if isinstance(other, BoundResource):

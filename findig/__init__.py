@@ -3,11 +3,11 @@ from os.path import dirname, join
 
 from werkzeug.local import LocalManager
 from werkzeug.routing import Map
-from werkzeug.wrappers import Request
 
 from findig.context import *
 from findig.data import JSONErrorHandler, JSONFormatter, JSONParser
 from findig.manager import Manager
+from findig.wrappers import Request
 
 
 with open(join(dirname(__file__), "VERSION")) as fh:
