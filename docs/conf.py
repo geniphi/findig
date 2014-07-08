@@ -37,7 +37,11 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
     'sphinx.ext.viewcode',
+    'sphinx.ext.intersphinx',
 ]
+
+# Our intersphinx mapping
+intersphinx_mapping = {'python': ('https://docs.python.org/', None)}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
