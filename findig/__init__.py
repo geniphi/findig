@@ -1,3 +1,5 @@
+from contextlib import contextmanager
+from functools import wraps
 import sys
 from os.path import dirname, join
 
@@ -8,6 +10,7 @@ from findig.context import *
 from findig.data import JSONErrorHandler, JSONFormatter, JSONParser
 from findig.manager import Manager
 from findig.wrappers import Request
+from findig.utils import ExitStack
 
 
 with open(join(dirname(__file__), "VERSION")) as fh:
@@ -25,10 +28,35 @@ class App(Manager):
         self.local_manager.locals.append(ctx)
 
         self.managers = [self]
+        self.context_hooks = []
+
+    def context(self, func):
+        self.context_hooks.append(contextmanager(func))
+        return func
+
+    def cleanup_hook(self, func):
+        @wraps(func)
+        def foo():
+            yield
+            func()
+        self.context(foo)
 
     def __call__(self, environ, start_response):
-        wsgi_app = self.local_manager.make_middleware(self.wsgi_app)
-        return wsgi_app(environ, start_response)
+        # Set up the application context and run the
+        # app inside it.
+        with ExitStack() as context:
+            context.callback(self.local_manager.cleanup)
+            
+            # Add all the application's context managers to
+            # the exit stack. If any of them return a value,
+            # we'll add the value to the application context
+            # with the function name.
+            for hook in self.context_hooks:
+                retval = context.enter_context(hook())
+                if retval is not None:
+                    setattr(ctx, hook.__name__, retval)
+
+            return self.wsgi_app(environ, start_response)
 
     def wsgi_app(self, environ, start_response):
         request = self.request_class(environ)
