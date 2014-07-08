@@ -36,6 +36,10 @@ class _GenericBase(object):
             return res
         return decorator
 
+    def include(self, other):
+        for content_type in other.funcs:
+            self.funcs.setdefault(other.funcs[content_type])
+
 class GenericParser(_GenericBase):
     def parse(self, request, resource):
         content_type, options = request.headers.get(
