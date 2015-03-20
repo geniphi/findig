@@ -1,4 +1,4 @@
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
 from functools import wraps
 import sys
 from os.path import dirname, join
@@ -10,7 +10,6 @@ from findig.context import *
 from findig.data import JSONErrorHandler, JSONFormatter, JSONParser
 from findig.manager import Manager
 from findig.wrappers import Request
-from findig.utils import ExitStack
 
 
 with open(join(dirname(__file__), "VERSION")) as fh:
