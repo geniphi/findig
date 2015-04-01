@@ -16,7 +16,7 @@ setup(
     description="A micro-framework for RESTful web applications.",
     long_description=read("DESCRIPTION.rst"),
 
-    url="not-a-valid-url",
+    url="https://github.com/geniphi/findig",
 
     author="Te-je Rodgers",
     author_email="tjd.rodgers@gmail.com",
@@ -43,10 +43,5 @@ setup(
     },
 
     install_requires=['werkzeug'],
-
-    extras_require={
-        'redis': ['redis'],
-        'jinja': ['jinja2'],
-    }
 
 )
