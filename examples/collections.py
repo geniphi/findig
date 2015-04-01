@@ -39,7 +39,7 @@ def remove_task(res):
 # and why you should use them whenever possible.
 
 @app.route('/tasks/<int:id>')
-@app.resource
+@app.resource(lazy=True)
 def task(id):
     return tasks.fetch(id=id)
 

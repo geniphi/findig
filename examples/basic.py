@@ -35,8 +35,9 @@ def update_data(res_data):
 def delete_data(res_data):
     DATA.clear()
 
-# A fake data store for our app
-DATA = {}
+@data.exceptions.on(KeyError)
+def handle_http_exception(e, exc_type, message, traceback):
+    return ResponseData(data)
 
 if __name__ == '__main__':
     run_simple('localhost', 5001, app, use_reloader=True, use_debugger=True)
