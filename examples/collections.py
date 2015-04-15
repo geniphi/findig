@@ -14,7 +14,7 @@ def task(id):
 
 @app.route('/tasks/')
 @task.collection(key='id')
-def tasks(id):
+def tasks():
     return (task for task in TASKS)
 
 @tasks.model('update')

@@ -35,9 +35,17 @@ def update_data(res_data):
 def delete_data(res_data):
     DATA.clear()
 
-@data.exceptions.on(KeyError)
+@data.exception(KeyError)
 def handle_http_exception(e, exc_type, message, traceback):
     return ResponseData(data)
+
+@data.formatter("text/xml", default=True)
+def format_data_xml(d):
+    pass
+
+@app.formatter("application/json", default=True)
+def format_data_json(d):
+    pass
 
 if __name__ == '__main__':
     run_simple('localhost', 5001, app, use_reloader=True, use_debugger=True)
