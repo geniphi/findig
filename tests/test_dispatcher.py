@@ -4,7 +4,7 @@ from werkzeug.routing import Rule
 
 from findig.data_model import DictDataModel
 from findig.dispatcher import Dispatcher
-from findig.resource import Resource
+from findig.resource import Resource, AbstractResource
 
 @pytest.fixture
 def dispatcher():
@@ -105,3 +105,33 @@ def test_method_warning(dispatcher, recwarn):
         if rule.rule == '/test':
             warning = recwarn.pop()
             assert set(map(str.lower, rule.methods)) == {'head', 'get', 'delete'}
+
+
+#def test_dispatch(dispatcher):
+#    request_objs = []
+
+#    class TestResource(AbstractResource):
+#        def __init__(self, name):
+#            self.name = name
+#            AbstractResource.__init__(self)
+#        def get_supported_methods(self):
+#            return {'GET'}
+#        def handle_request(self, request, url_values):
+#            assert url_values == {}
+
+#    class TestResource2(AbstractResource):
+#        def __init__(self, name):
+#            self.name = name
+#            AbstractResource.__init__(self)
+#        def get_supported_methods(self):
+#            return {'GET'}
+#        def handle_request(self, request, url_values):
+#            assert len(url_values) == 2
+#            assert 'id' in url_values
+#            assert 't' in url_values
+
+
+#    test_resource = TestResource('test')
+#    test_resource2 = TestResource2('test2')
+#    dispatcher.route(test_resource, '/my_route')
+#    dispatcher.route(test_resource2, '/items/<id>/<t>')

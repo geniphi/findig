@@ -2,15 +2,23 @@ from functools import singledispatch
 import warnings
 
 from werkzeug.routing import Rule
+from werkzeug.wrappers import Response, BaseResponse
 
-from findig.resource import Resource
+from findig.content import AbstractFormatter, Formatter, Parser
+from findig.context import ctx
+from findig.resource import Resource, AbstractResource
 
 class Dispatcher:
     """A collector of routes and dispatcher of requests."""
 
-    def __init__(self):
+    response_class = Response
+
+    def __init__(self, formatter=None, parser=None):
         self.route = singledispatch(self.route)
         self.route.register(str, self.route_decorator)
+
+        self.parser = Parser() if parser is None else parser
+        self.formatter = Formatter() if formatter is None else formatter
 
         self.resources = {}
         self.routes = []
@@ -85,7 +93,7 @@ class Dispatcher:
                 return ( ... )
 
         """
-        if not isinstance(resource, Resource):
+        if not isinstance(resource, AbstractResource):
             resource = self.resource(resource)
 
         self.routes.append((resource, rulestr, ruleargs))
@@ -95,12 +103,8 @@ class Dispatcher:
     def route_decorator(self, rulestr, **ruleargs):
         """See :meth:route."""
         def decorator(resource):
-            # Turn regular old function into resources
-            if not isinstance(resource, Resource):
-                resource = self.resource(resource)
-
             # Collect the rule
-            self.route(resource, rulestr, **ruleargs)
+            resource = self.route(resource, rulestr, **ruleargs)
 
             # return the resource
             return resource
@@ -157,8 +161,28 @@ class Dispatcher:
         Dispatch a request to the appropriate resource, based on
         which resource the rule applies to.
         """
-        resource = self.endpoints[rule.endpoint]
-        return resource.handle_request(request, url_values)
+        # TODO: document request context variables.
+        ctx.dispatcher = self
+        ctx.resource = resource = self.endpoints[rule.endpoint]
+        ctx.response = response = {} # response arguments
+
+        data = resource.handle_request(request, url_values)
+
+        if isinstance(data, (self.response_class, BaseResponse)):
+            return data
+
+        else:
+            mime, formatter = AbstractFormatter.resolve(
+                getattr(resource, 'formatter', Formatter()),
+                self.formatter # Fallback to the dispatcher's formatter
+            )
+
+        
+            response = {k:v for k,v in response.items() 
+                        if k in ('status', 'headers')}
+            response['mimetype'] = None if mime == 'default' else mime
+            response['response'] = formatter.format(mime, data)
+            return self.response_class(**response)
 
     @property
     def unrouted_resources(self):
