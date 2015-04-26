@@ -1,10 +1,12 @@
 from contextlib import contextmanager, ExitStack
 from functools import wraps
 from os.path import join, dirname
+import traceback
 
 from werkzeug.local import LocalManager
 from werkzeug.routing import Map, RuleFactory
 from werkzeug.utils import cached_property
+from werkzeug.wrappers import BaseResponse
 
 from findig.context import *
 from findig.dispatcher import Dispatcher
@@ -106,7 +108,11 @@ class App(Dispatcher):
             rule, url_values = adapter.match(return_rule=True)
             response = self.dispatch(request, rule, url_values)
         except BaseException as err:
-            response = self.error_handler(err)
+            try:
+                response = self.error_handler(err)
+            except:
+                traceback.print_exc()
+                response = BaseResponse(None, status=500)
         finally:
             return response(environ, start_response)
 
