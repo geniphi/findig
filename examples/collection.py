@@ -1,34 +1,35 @@
 #-*- coding: utf-8 -*-
 
 from findig import App
+from findig.extras.redis import RedisSet
 from werkzeug.serving import run_simple
 
 app = App()
 
-TASKS = {} # Fake data store
+#TASKS = {} # Fake data store
 
-@app.route('/tasks/<int:id>')
-@app.resource
-def task(id):
-    return tasks.fetch(id=id)
+#@app.route('/tasks/<int:id>')
+#@app.resource
+#def task(id):
+#    return tasks.model.dataset.fetch(id=id)
 
-@app.route('/tasks/')
-@task.collection(key='id')
-def tasks():
-    return (task for task in TASKS)
+#@app.route('/tasks/')
+#@task.collection(key='id')
+#def tasks():
+#    return (task for task in TASKS)
 
-@tasks.model('update')
-@tasks.model('create')
-def put_task(res):
-    if not hasattr(res, 'id'):
-        res.id = id(res) #stupid hack; don't do this
+#@tasks.model('update')
+#@tasks.model('create')
+#def put_task(res):
+#    if not hasattr(res, 'id'):
+#        res.id = id(res) #stupid hack; don't do this
 
-    task = dict(res)
-    TASKS[res.id] = task
+#    task = dict(res)
+#    TASKS[res.id] = task
 
-@tasks.model('delete')
-def remove_task(res):
-    del TASKS[res.id]
+#@tasks.model('delete')
+#def remove_task(res):
+#    del TASKS[res.id]
 
 
 ################################
@@ -41,7 +42,7 @@ def remove_task(res):
 @app.route('/tasks/<int:id>')
 @app.resource(lazy=True)
 def task(id):
-    return tasks.fetch(id=id)
+    return tasks().fetch(id=id)
 
 @app.route('/tasks/')
 @task.collection(lazy=True)
@@ -50,7 +51,7 @@ def tasks():
     # model that we do not need to specify; Findig already
     # knows how to use it to create, update and delete items.
     # You can return any DataSet instance here.
-    return RedisSet('redis-key')
+    return RedisSet('my-data-set')
 
 if __name__ == '__main__':
     run_simple('localhost', 5002, app, use_reloader=True, use_debugger=True)
