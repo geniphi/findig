@@ -4,7 +4,7 @@ import warnings
 from werkzeug.routing import Rule
 from werkzeug.wrappers import Response, BaseResponse
 
-from findig.content import AbstractFormatter, Formatter, Parser
+from findig.content import Formatter, Parser
 from findig.context import ctx
 from findig.resource import Resource, AbstractResource
 
@@ -17,8 +17,15 @@ class Dispatcher:
         self.route = singledispatch(self.route)
         self.route.register(str, self.route_decorator)
 
-        self.parser = Parser() if parser is None else parser
-        self.formatter = Formatter() if formatter is None else formatter
+        if parser is None:
+            parser = Parser()
+        
+        if formatter is None:
+            formatter = Formatter()
+            formatter.register('text/plain', str, default=True)
+
+        self.formatter = formatter
+        self.parser = parser
 
         self.resources = {}
         self.routes = []
@@ -164,6 +171,7 @@ class Dispatcher:
         # TODO: document request context variables.
         ctx.dispatcher = self
         ctx.resource = resource = self.endpoints[rule.endpoint]
+        ctx.url_values = url_values
         ctx.response = response = {} # response arguments
 
         data = resource.handle_request(request, url_values)
@@ -172,16 +180,16 @@ class Dispatcher:
             return data
 
         else:
-            mime, formatter = AbstractFormatter.resolve(
+            format = Formatter.compose(
                 getattr(resource, 'formatter', Formatter()),
-                self.formatter # Fallback to the dispatcher's formatter
+                self.formatter
             )
 
-        
+            mime_type, formatted = format(data)   
             response = {k:v for k,v in response.items() 
                         if k in ('status', 'headers')}
-            response['mimetype'] = None if mime == 'default' else mime
-            response['response'] = formatter.format(mime, data)
+            response['mimetype'] = mime_type
+            response['response'] = formatted
             return self.response_class(**response)
 
     @property
