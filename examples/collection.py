@@ -1,10 +1,10 @@
 #-*- coding: utf-8 -*-
 
-from findig import App
+from findig.json import App
 from findig.extras.redis import RedisSet
 from werkzeug.serving import run_simple
 
-app = App()
+app = App(indent=2)
 
 #TASKS = {} # Fake data store
 
