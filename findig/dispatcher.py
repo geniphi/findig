@@ -200,22 +200,24 @@ class Dispatcher:
 
         try:
             data = resource.handle_request(request, url_values)
+            response = {k:v for k,v in response.items() 
+                        if k in ('status', 'headers')}
 
             if isinstance(data, (self.response_class, BaseResponse)):
                 return data
 
-            else:
+            elif data is not None:
+
                 format = Formatter.compose(
                     getattr(resource, 'formatter', Formatter()),
                     self.formatter
                 )
 
-                mime_type, formatted = format(data)   
-                response = {k:v for k,v in response.items() 
-                            if k in ('status', 'headers')}
+                mime_type, data = format(data)
                 response['mimetype'] = mime_type
-                response['response'] = formatted
-                return self.response_class(**response)
+                response['response'] = data
+
+            return self.response_class(**response)
         except BaseException as err:
             return self.error_handler(err)
 
