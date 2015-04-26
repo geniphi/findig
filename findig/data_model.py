@@ -1,6 +1,8 @@
 from abc import ABCMeta, abstractmethod
 from collections.abc import Callable, Mapping, MutableMapping
 
+from findig.dataset import MutableDataSet, MutableRecord
+
 
 class AbstractDataModel(Mapping, metaclass=ABCMeta):
     """
@@ -125,5 +127,38 @@ class DataModel(AbstractDataModel, MutableMapping):
             return func
         
         return decorator
+
+class DataSetDataModel(AbstractDataModel):
+    def __init__(self, dataset):
+        self.ds = dataset
+
+    def __iter__(self):
+        yield 'read'
+
+        if isinstance(self.ds, MutableDataSet):
+            yield 'make'
+
+        if isinstance(self.ds, MutableRecord):
+            yield 'write'
+            yield 'delete'
+
+    def __len__(self):
+        length = 1
+        if isinstance(self.ds, MutableDataSet):
+            length += 1
+        if isinstance(self.ds, MutableRecord):
+            length += 2
+        return length
+
+    def __getitem__(self, action):
+        if action == 'read':
+            return self.ds
+        elif action == 'make':
+            return self.ds.add
+        elif action == 'write':
+            return lambda data: self.ds.patch(data, replace=True)
+        elif action == 'delete':
+            return self.ds.delete
+
 
 __all__ = ['AbstractDataModel', 'DictDataModel', 'DataModel']
