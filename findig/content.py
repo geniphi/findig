@@ -107,7 +107,7 @@ class Formatter(ContentPipe):
         # indicated it can accept
 
         # Get the accept header
-        accept_header = ctx.request.get("Accept")
+        accept_header = ctx.request.headers.get("Accept")
         
         if accept_header is None:
             if hasattr(self, 'default'):
