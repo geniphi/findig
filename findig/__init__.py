@@ -99,13 +99,17 @@ class App(Dispatcher):
         :param start_response: A WSGI file handle for the HTTP response.
         :return: A response stream
         """
-        ctx.app = self
-        ctx.request = request = self.request_class(environ)
-        ctx.url_adapter = adapter = self.url_map.bind_to_environ(environ)
-        rule, url_values = adapter.match(return_rule=True)
-        response = self.dispatch(request, rule, url_values)
-        return response(environ, start_response)
+        try:
+            ctx.app = self
+            ctx.url_adapter = adapter = self.url_map.bind_to_environ(environ)
+            ctx.request = request = self.request_class(environ)
+            rule, url_values = adapter.match(return_rule=True)
+            response = self.dispatch(request, rule, url_values)
+        except BaseException as err:
+            response = self.error_handler(err)
+        finally:
+            return response(environ, start_response)
 
     @cached_property
     def url_map(self):
-        return Map(r for r in self.build_rules())
+        return Map([r for r in self.build_rules()])

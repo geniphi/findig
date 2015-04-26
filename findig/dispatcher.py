@@ -1,10 +1,12 @@
 from functools import singledispatch
 import warnings
+import traceback
 
+from werkzeug.exceptions import HTTPException
 from werkzeug.routing import Rule
 from werkzeug.wrappers import Response, BaseResponse
 
-from findig.content import Formatter, Parser
+from findig.content import ErrorHandler, Formatter, Parser
 from findig.context import ctx
 from findig.resource import Resource, AbstractResource
 
@@ -13,9 +15,14 @@ class Dispatcher:
 
     response_class = Response
 
-    def __init__(self, formatter=None, parser=None):
+    def __init__(self, formatter=None, parser=None, error_handler=None):
         self.route = singledispatch(self.route)
         self.route.register(str, self.route_decorator)
+
+        if error_handler is None:
+            error_handler = ErrorHandler()
+            error_handler.register(BaseException, self._handle_exception)
+            error_handler.register(HTTPException, self._handle_http_exception)
 
         if parser is None:
             parser = Parser()
@@ -26,10 +33,27 @@ class Dispatcher:
 
         self.formatter = formatter
         self.parser = parser
+        self.error_handler = error_handler
 
         self.resources = {}
         self.routes = []
         self.endpoints = {}
+
+    def _handle_exception(self, err):
+        # TODO: log error
+        traceback.print_exc()
+        return Response("An internal application error has been logged.",
+                        status=500)
+
+    def _handle_http_exception(self, http_err):
+        response = http_err.get_response(ctx.request)
+
+        headers = response.headers
+        del headers['Content-Type']
+        del headers['Content-Length']
+
+        return Response(http_err.description, status=response.status, 
+                        headers=response.headers)
 
 
     def resource(self, wrapped=None, **args):
@@ -174,23 +198,26 @@ class Dispatcher:
         ctx.url_values = url_values
         ctx.response = response = {} # response arguments
 
-        data = resource.handle_request(request, url_values)
+        try:
+            data = resource.handle_request(request, url_values)
 
-        if isinstance(data, (self.response_class, BaseResponse)):
-            return data
+            if isinstance(data, (self.response_class, BaseResponse)):
+                return data
 
-        else:
-            format = Formatter.compose(
-                getattr(resource, 'formatter', Formatter()),
-                self.formatter
-            )
+            else:
+                format = Formatter.compose(
+                    getattr(resource, 'formatter', Formatter()),
+                    self.formatter
+                )
 
-            mime_type, formatted = format(data)   
-            response = {k:v for k,v in response.items() 
-                        if k in ('status', 'headers')}
-            response['mimetype'] = mime_type
-            response['response'] = formatted
-            return self.response_class(**response)
+                mime_type, formatted = format(data)   
+                response = {k:v for k,v in response.items() 
+                            if k in ('status', 'headers')}
+                response['mimetype'] = mime_type
+                response['response'] = formatted
+                return self.response_class(**response)
+        except BaseException as err:
+            return self.error_handler(err)
 
     @property
     def unrouted_resources(self):

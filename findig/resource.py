@@ -5,9 +5,12 @@ import inspect
 import itertools
 import uuid
 
-from findig.content import Formatter, Parser
+from werkzeug.exceptions import MethodNotAllowed, NotFound
+from werkzeug.utils import cached_property
+
+from findig.content import ErrorHandler, Formatter, Parser
 from findig.context import url_adapter, request
-from findig.data_model import DataModel
+from findig.data_model import DataModel, DataSetDataModel
 
 
 class AbstractResource(metaclass=abc.ABCMeta):
@@ -101,13 +104,22 @@ class Resource(AbstractResource):
         self.parser = args.get('parser', Parser())
         self.formatter = args.get('formatter', Formatter())
 
+        if 'error_handler' not in args:
+            args['error_handler'] = eh = ErrorHandler()
+            args['error_handler'].register(LookupError, self._on_lookup_err)
+            
+        self.error_handler = args.get('error_handler')
+
         wrapped = args.get('wrapped', lambda **_: {})        
         functools.update_wrapper(self, wrapped)
 
-    def __call__(self, **kwargs):
-        return self.__wrapped__(**args)
+    def _on_lookup_err(self, err):
+        raise NotFound
 
-    def _make_composite_model(self, wrapper_args=None):
+    def __call__(self, **kwargs):
+        return self.__wrapped__(**kwargs)
+
+    def compose_model(self, wrapper_args=None):
         """
         Make a composite model for the resource by combining a
         lazy data handler (if present) and the model specified on
@@ -124,15 +136,16 @@ class Resource(AbstractResource):
         if self.lazy:
             if wrapper_args is None:
                 # Pass in some fake ass argument values to the wrapper
-                # so we can get a pretend data-handler for inspection.
+                # so we can get a pretend data-set for inspection.
                 argspec = inspect.getfullargspec(self.__wrapped__)
                 wrapper_args = {
                     name : None for name in
                     itertools.chain(argspec.args, argspec.kwonlyargs)
                     }
 
-            data_handler = self.__wrapped__(**wrapper_args)
-            return self.model.compose(data_handler)
+            dataset = self.__wrapped__(**wrapper_args)
+            dsdm = DataSetDataModel(dataset)
+            return self.model.compose(dsdm)
         else:
             return self.model
 
@@ -145,7 +158,7 @@ class Resource(AbstractResource):
                       is built from ``self.model`` and any data source
                       returned by the resource's wrapped function.
         """
-        model = self._make_composite_model() if model is None else model
+        model = self.compose_model() if model is None else model
         supported_methods = {('GET')}
 
         if 'delete' in model:
@@ -173,23 +186,28 @@ class Resource(AbstractResource):
         
         """
         method = request.method.upper()
-        model = self._make_composite_model(wrapper_args)
-        supported_methods = self.get_supported_methods(model)
+        
 
-        if method not in supported_methods:
-            raise MethodNotAllowed(list(supported_methods))
+        try:
+            model = self.compose_model(wrapper_args)
+            supported_methods = self.get_supported_methods(model)
 
-        elif method == 'GET':
-            return self()
+            if method not in supported_methods and method != 'HEAD':
+                raise MethodNotAllowed(list(supported_methods))
 
-        elif method == 'DELETE':
-            model['delete'](request.input)
+            elif method == 'GET' or method == 'HEAD':
+                return self()
 
-        elif method == 'PUT':
-            return model['write'](request.input)
+            elif method == 'DELETE':
+                return model['delete'](request.input)
 
-        else:
-            raise ValueError
+            elif method == 'PUT':
+                return model['write'](request.input)
+
+            else:
+                raise ValueError
+        except BaseException as err:
+            return self.error_handler(err)
         
     def collection(self, wrapped=None, **args):
         """
@@ -238,7 +256,11 @@ class Collection(Resource):
         bindargs = args.get('bindargs', ())
         kwbindargs = args.get('kwbingargs', {})
         kwbindargs.update({arg:arg for arg in bindargs})
-        self.collects = namedtuple("collected_resource", "resource binding")(of, kwbindargs)
+        self.collects = collections.namedtuple(
+            "collected_resource", "resource binding")(of, kwbindargs)
+
+    def handle_request(self, request, wrapper_args):
+        return super().handle_request(request, wrapper_args)
 
 
 __all__ = 'Resource', 'Collection'
