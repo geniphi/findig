@@ -1,5 +1,7 @@
 #-*- coding: utf-8 -*-
 
+import json
+
 from findig import App
 from werkzeug.serving import run_simple
 
@@ -26,7 +28,7 @@ def greeter():
 def data():
     return dict(DATA)
 
-@data.model("update")
+@data.model("write")
 def update_data(res_data):
     DATA.clear()
     DATA.update(res_data)
@@ -35,17 +37,13 @@ def update_data(res_data):
 def delete_data(res_data):
     DATA.clear()
 
-@data.exception(KeyError)
-def handle_http_exception(e, exc_type, message, traceback):
-    return ResponseData(data)
-
-@data.formatter("text/xml", default=True)
-def format_data_xml(d):
-    pass
-
-@app.formatter("application/json", default=True)
+@app.formatter.register("application/json", default=True)
 def format_data_json(d):
-    pass
+    return json.dumps(d)
+
+@data.parser.register("application/json")
+def parse_json_bytes(bs, **opts):
+    return json.loads(bs.decode(opts.get("charset", "utf8")))
 
 if __name__ == '__main__':
     run_simple('localhost', 5001, app, use_reloader=True, use_debugger=True)
