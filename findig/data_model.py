@@ -152,11 +152,11 @@ class DataSetDataModel(AbstractDataModel):
 
     def __getitem__(self, action):
         if action == 'read':
-            return self.ds
+            return lambda: self.ds
         elif action == 'make':
             return self.ds.add
         elif action == 'write':
-            return lambda data: self.ds.patch(data, replace=True)
+            return lambda data: self.ds.patch(data, (), replace=True)
         elif action == 'delete':
             return self.ds.delete
 
