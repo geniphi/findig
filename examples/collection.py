@@ -45,7 +45,7 @@ def task(id):
     return tasks().fetch(id=id)
 
 @app.route('/tasks/')
-@task.collection(lazy=True)
+@task.collection(lazy=True, include_urls=True)
 def tasks():
     # RedisSet is a DataSet instance, and so has an implicit
     # model that we do not need to specify; Findig already

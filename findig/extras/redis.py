@@ -39,9 +39,10 @@ class IndexToken(Mapping):
 
 
 class RedisObj(MutableRecord):
-    def __init__(self, key, collection=None):
+    def __init__(self, key, collection=None, include_id=True):
         self.itemkey = key
         self.collection = collection
+        self.include_id = include_id
         self.r = (collection.r 
                   if collection is not None
                   else redis.StrictRedis())
@@ -110,6 +111,8 @@ class RedisObj(MutableRecord):
 
     def read(self):
         data = self.r.hgetall(self.itemkey)
+        if self.include_id:
+            data[b'id'] = self.id.encode("utf8")
         return {k.decode('utf8'):literal_eval(v.decode('utf8')) 
                 for k,v in data.items()}
 
@@ -157,6 +160,7 @@ class RedisSet(MutableDataSet):
         self.indsize = args.pop('index_size', 4)
         self.filterby = args.pop('filterby', {})
         self.indexby = args.pop('candidate_keys', [('id',)])
+        self.include_ids = args.pop('include_ids', True)
         self.r = redis.StrictRedis() if client is None else client
 
     def __repr__(self):
@@ -194,11 +198,11 @@ class RedisSet(MutableDataSet):
             if self.filterby:
                 # Check the items against the filter if it was
                 # specified
-                data = RedisObj(itemkey, self)
+                data = RedisObj(itemkey, self, self.include_ids)
                 if FilteredDataSet.check_match(data, self.filterby):
                     yield data
             else:
-                yield RedisObj(itemkey, self)
+                yield RedisObj(itemkey, self, self.include_ids)
 
     def add(self, data):
         """Add the record to the set."""

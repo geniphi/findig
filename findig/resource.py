@@ -262,7 +262,8 @@ class Resource(AbstractResource):
 class Collection(Resource):
     def __init__(self, of, **args):
         super(Collection, self).__init__(**args)
-        bindargs = args.get('bindargs', {})
+        self.include_urls = args.pop('include_urls')
+        bindargs = args.pop('bindargs', {})
         self.collects = collections.namedtuple(
             "collected_resource", "resource binding")(of, bindargs)
 
@@ -277,25 +278,49 @@ class Collection(Resource):
 
     def _handle_request_with_model(self, request, method, model):
         if method == 'POST' and 'make' in model:
-            ret_data = model['make'](request.input)
-            
+            token = model['make'](request.input)            
             ctx.response.setdefault('status', 201)
-
-            # Try to build a URL to the created child
-            if isinstance(ret_data, Mapping):
-                child, bind_args = self.collects
-                args = {(bind_args[k] if k in bind_args else k):ret_data[k]
-                        for k in ret_data}
-                try:
-                    url = url_adapter.build(child.name, args)
-                except URLBuildError:
-                    pass
-                else:
-                    ctx.response['headers'].setdefault('Location', url)
-
-            return ret_data
+            url = self._try_build_item_url(data)
+            if url is not None:
+                ctx.response['headers'].setdefault('Location', url)
+            return token
         else:          
-            return super()._handle_request_with_model(request, method, model)
+            ret_data = super()._handle_request_with_model(
+                request, method, model
+            )
+
+            if method == 'GET' and self.include_urls:
+                # We should modify the iterated items to add a URL
+                return map(self._include_url_in_item, ret_data)
+            else:
+                return ret_data
+
+    def _include_url_in_item(self, item):
+        url = self._try_build_item_url(item)
+        if url is not None:
+            if isinstance(item, Mapping):
+                item = dict(item)
+                item.setdefault('url', url)
+            else:
+                try:
+                    item.url = url
+                except:
+                    pass
+
+        return item
+
+    def _try_build_item_url(self, data):
+        child, bind_args = self.collects
+        if not isinstance(data, Mapping):
+            data = data.__dict__
+        args = {(bind_args[k] if k in bind_args else k):data[k]
+                for k in data}
+        try:
+            url = url_adapter.build(child.name, args, append_unknown=False)
+        except URLBuildError:
+            pass
+        else:
+            return url
 
 
 __all__ = 'Resource', 'Collection'
