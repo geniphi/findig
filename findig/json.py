@@ -2,7 +2,7 @@ from collections.abc import Iterable, Mapping
 import json
 import traceback
 
-from werkzeug.exceptions import HTTPException
+from werkzeug.exceptions import BadRequest, HTTPException
 from werkzeug.wrappers import Response
 
 from findig import App as App_
@@ -62,13 +62,16 @@ class JSONMixin:
         byte_string = b"" if byte_string is None else byte_string
         try:
             jsonified = byte_string.decode(opts.get('charset', 'utf8'))
-            data = json.loads(jsonified)
+            data = json.loads(jsonified) if jsonified else {}
         except UnicodeDecodeError:
             raise BadRequest("Cannot decode request data")
         except ValueError as err:
             raise BadRequest("Can't parse request data {}".format(err))
         else:
-            return request.parameter_storage_class(data)
+            if isinstance(data, dict):
+                return request.parameter_storage_class(data)
+            else:
+                return data
 
 
 class Dispatcher(JSONMixin, Dispatcher_):
