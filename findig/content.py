@@ -109,7 +109,7 @@ class Formatter(ContentPipe):
         # Get the accept header
         accept_header = ctx.request.headers.get("Accept")
         
-        if accept_header is None:
+        if accept_header == "*/*":
             if hasattr(self, 'default'):
                 return self.default, self.handlers[self.default]
 
@@ -164,7 +164,7 @@ class Formatter(ContentPipe):
             new_formatter = Formatter()
             for inst in reversed(formatters):
                 new_formatter.handlers.update(inst.handlers)
-                if hasattr(inst, 'default'):
+                if getattr(inst, 'default', None) is not None:
                     new_formatter.default = inst.default
             return new_formatter
         else:
@@ -190,10 +190,10 @@ class Parser(ContentPipe):
         )
 
         if content_type in self.handlers:
-            return partial(self.handlers[content_type], **options)
+            return content_type, partial(self.handlers[content_type], **options)
 
         elif hasattr(self, 'default'):
-            return partial(self.handlers[self.default], **options)
+            return self.default, partial(self.handlers[self.default], **options)
 
         else:
             raise UnsupportedMediaType
