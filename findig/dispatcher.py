@@ -196,7 +196,7 @@ class Dispatcher:
         ctx.dispatcher = self
         ctx.resource = resource = self.endpoints[rule.endpoint]
         ctx.url_values = url_values
-        ctx.response = response = {} # response arguments
+        ctx.response = response = {'headers': {}} # response arguments
 
         try:
             data = resource.handle_request(request, url_values)

@@ -4,13 +4,15 @@ import functools
 import inspect
 import itertools
 import uuid
+from collections.abc import Mapping
 
 from werkzeug.exceptions import MethodNotAllowed, NotFound
+from werkzeug.routing import BuildError as URLBuildError
 from werkzeug.utils import cached_property
 
 from findig.content import ErrorHandler, Formatter, Parser
-from findig.context import url_adapter, request
-from findig.data_model import DataModel, DataSetDataModel
+from findig.context import url_adapter, request, ctx
+from findig.data_model import DataModel, DataSetDataModel, DictDataModel
 
 
 class AbstractResource(metaclass=abc.ABCMeta):
@@ -146,6 +148,13 @@ class Resource(AbstractResource):
             dataset = self.__wrapped__(**wrapper_args)
             dsdm = DataSetDataModel(dataset)
             return self.model.compose(dsdm)
+        elif wrapper_args is not None and 'read' not in self.model:
+            # Add a 'read' method to the model that just calls this
+            # model.
+            new_model = DictDataModel({
+                'read': lambda: self.__wrapped__(**wrapper_args)
+            })
+            return self.model.compose(new_model)
         else:
             return self.model
 
@@ -159,7 +168,7 @@ class Resource(AbstractResource):
                       returned by the resource's wrapped function.
         """
         model = self.compose_model() if model is None else model
-        supported_methods = {('GET')}
+        supported_methods = {'GET'}
 
         if 'delete' in model:
             supported_methods.add('DELETE')
@@ -186,28 +195,30 @@ class Resource(AbstractResource):
         
         """
         method = request.method.upper()
-        
-
         try:
             model = self.compose_model(wrapper_args)
-            supported_methods = self.get_supported_methods(model)
-
-            if method not in supported_methods and method != 'HEAD':
-                raise MethodNotAllowed(list(supported_methods))
-
-            elif method == 'GET' or method == 'HEAD':
-                return self()
-
-            elif method == 'DELETE':
-                return model['delete'](request.input)
-
-            elif method == 'PUT':
-                return model['write'](request.input)
-
-            else:
-                raise ValueError
+            return self._handle_request_with_model(request, method, model)
+            
         except BaseException as err:
             return self.error_handler(err)
+
+    def _handle_request_with_model(self, request, method, model):
+        supported_methods = self.get_supported_methods(model)
+
+        if method not in supported_methods and method != 'HEAD':
+            raise MethodNotAllowed(list(supported_methods))
+
+        elif method == 'GET' or method == 'HEAD':
+            return model['read']()
+
+        elif method == 'DELETE':
+            return model['delete']()
+
+        elif method == 'PUT':
+            return model['write'](request.input)
+
+        else:
+            raise ValueError        
         
     def collection(self, wrapped=None, **args):
         """
@@ -251,16 +262,40 @@ class Resource(AbstractResource):
 class Collection(Resource):
     def __init__(self, of, **args):
         super(Collection, self).__init__(**args)
-        self.collected_resource = of
-
-        bindargs = args.get('bindargs', ())
-        kwbindargs = args.get('kwbingargs', {})
-        kwbindargs.update({arg:arg for arg in bindargs})
+        bindargs = args.get('bindargs', {})
         self.collects = collections.namedtuple(
-            "collected_resource", "resource binding")(of, kwbindargs)
+            "collected_resource", "resource binding")(of, bindargs)
 
-    def handle_request(self, request, wrapper_args):
-        return super().handle_request(request, wrapper_args)
+    def get_supported_methods(self, model=None):
+        model = self.compose_model() if model is None else model
+        supported = super().get_supported_methods(model)
+        
+        if 'make' in model:
+            supported.add('POST')
+
+        return supported
+
+    def _handle_request_with_model(self, request, method, model):
+        if method == 'POST' and 'make' in model:
+            ret_data = model['make'](request.input)
+            
+            ctx.response.setdefault('status', 201)
+
+            # Try to build a URL to the created child
+            if isinstance(ret_data, Mapping):
+                child, bind_args = self.collects
+                args = {(bind_args[k] if k in bind_args else k):ret_data[k]
+                        for k in ret_data}
+                try:
+                    url = url_adapter.build(child.name, args)
+                except URLBuildError:
+                    pass
+                else:
+                    ctx.response['headers'].setdefault('Location', url)
+
+            return ret_data
+        else:          
+            return super()._handle_request_with_model(request, method, model)
 
 
 __all__ = 'Resource', 'Collection'
