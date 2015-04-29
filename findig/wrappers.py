@@ -1,7 +1,9 @@
 from werkzeug.utils import cached_property
 from werkzeug.wrappers import Request as Request_
 
+from findig.content import Parser
 from findig.context import ctx
+from findig.utils import tryeach
 
 
 class Request(Request_):
@@ -10,7 +12,13 @@ class Request(Request_):
 
     @cached_property
     def input(self):
-        return ctx._parser()
+        return tryeach(
+            [
+                getattr(ctx.resource, 'parser', Parser()),
+                ctx.dispatcher.parser
+            ],
+            self.data
+        )[1]
 
 
 __all__ = ['Request']
