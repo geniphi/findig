@@ -1,1 +1,4 @@
 Werkzeug
+
+# Optional: These requirements enable specific features
+#redis # Redis data-set support
