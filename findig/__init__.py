@@ -22,11 +22,14 @@ class App(Dispatcher):
     local_manager = LocalManager()
 
 
-    def __init__(self):
+    def __init__(self, autolist=False):
         super(App, self).__init__()
 
         self.local_manager.locals.append(ctx)
         self.context_hooks = []
+
+        if autolist:
+            self.route(self.iter_resources, "/")
 
     def context(self, func):
         """
@@ -115,6 +118,25 @@ class App(Dispatcher):
                 response = BaseResponse(None, status=500)
         finally:
             return response(environ, start_response)
+
+    def iter_resource_rules(self, resource):
+        """An iterable for all the url rules registered for a resource."""
+        yield from self.url_map.iter_rules(resource.name)
+
+    def iter_resources(self, adapter=None):
+        # The app iters through all registered resources that have been
+        # hooked up to a route, for which we can build URLs.
+        endpoints = {}
+        adapter = ctx.url_adapter if adapter is None else adapter
+        
+        for rule in self.url_map.iter_rules():
+            endpoints[rule.endpoint] = rule
+
+        for endpoint in endpoints:
+            # TODO: implement dispatcher API
+            dispatcher = self
+            yield dispatcher.endpoints[endpoint]
+
 
     @cached_property
     def url_map(self):

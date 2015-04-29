@@ -1,31 +1,55 @@
 from collections.abc import Iterable, Mapping
 import json
+import re
 import traceback
 
 from werkzeug.exceptions import BadRequest, HTTPException
+from werkzeug.routing import BuildError as URLBuildError
 from werkzeug.wrappers import Response
 
 from findig import App as App_
-from findig.dispatcher import Dispatcher as Dispatcher_
 from findig.content import *
-from findig.context import request
+from findig.context import ctx, request
+from findig.dispatcher import Dispatcher as Dispatcher_
+from findig.resource import AbstractResource, Collection, Resource
 
 
 class CustomEncoder(json.JSONEncoder):
+    value_pattern = re.compile("<(?:.*?:)?(.*?)>")
     def default(self, obj):
         if isinstance(obj, Mapping):
             return dict(obj)
         elif isinstance(obj, Iterable):
             return list(obj)
+        elif isinstance(obj, AbstractResource):
+            rule = next(ctx.app.iter_resource_rules(obj))
+
+            d = {
+                'methods': rule.methods,
+            }
+
+            try:
+                url = ctx.url_adapter.build(obj.name)
+                d['url'] = url
+            except URLBuildError:
+                url = self.value_pattern.sub(r":\1", rule.rule)
+                d['url_rule'] = url
+                d['url'] = None
+
+            if isinstance(obj, Resource):
+                d['is_strict_collection'] = isinstance(obj, Collection)
+
+            return d
+
         else:
             return super().default(obj)
 
 
 class JSONMixin:
-    def __init__(self, indent=None, encoder_cls=None):
+    def __init__(self, indent=None, encoder_cls=None, **args):
         self.indent = indent
         self.encoder_cls = CustomEncoder if encoder_cls is None else encoder_cls
-        super().__init__()
+        super().__init__(**args)
 
         self.error_handler = ErrorHandler()
         self.error_handler.register(BaseException, self._respond_error)
