@@ -68,7 +68,6 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Findig'
-copyright = '2014, Te-jé Rodgers'
 copyright = u'2014, Te-jé Rodgers'
 
 # The version info for the project you're documenting, acts as replacement for
