@@ -211,14 +211,17 @@ a resource through it's route::
     @app.route("/resource", methods=['GET', 'DELETE'])
     def resource():
         # return some resource data
+        pass
 
     @resource.model('write')
     def write_resource(data):
         # save the resource data
+        pass
 
     @resource.model('delete')
     def delete_resource():
         # delete the resource
+        pass
 
 ``PUT`` requests to this resource will fail with status 
 ``405: METHOD NOT ALLOWED``, even though we have a *write* operation
