@@ -2,7 +2,7 @@ Installation
 ============
 
 .. note:: Findig is pre-release software and isn't currently installable
-          by PyPI. Currently though only way to install Findig is using
+          by PyPI. Currently the only way to install Findig is using
           its development version.
 
 Installing Findig is easy, as long as you have the right tool for the
