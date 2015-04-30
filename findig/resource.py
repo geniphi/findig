@@ -262,7 +262,7 @@ class Resource(AbstractResource):
 class Collection(Resource):
     def __init__(self, of, **args):
         super(Collection, self).__init__(**args)
-        self.include_urls = args.pop('include_urls')
+        self.include_urls = args.pop('include_urls', False)
         bindargs = args.pop('bindargs', {})
         self.collects = collections.namedtuple(
             "collected_resource", "resource binding")(of, bindargs)
