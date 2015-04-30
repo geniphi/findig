@@ -9,7 +9,7 @@ What Findig is
 --------------
 
 Findig is a micro-framework for building HTTP applications. It's perhaps
-comparable to Flask_ and Bottle_ in terms of size and easy of use.
+comparable to Flask_ and Bottle_ in terms of size and ease of use.
 Continuing in their tradition, it makes it incredibly easy to set up
 a WSGI application, and avoids forcing specific choices on you
 (such as a database layer or templating engine). However, Findig is
