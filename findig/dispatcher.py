@@ -191,15 +191,19 @@ class Dispatcher:
             # Initialize the rule, and yield it
             yield Rule(string, **args)
 
-    def dispatch(self, request, rule, url_values):
+    def get_resource(self, rule):
+        return self.endpoints[rule.endpoint]
+
+    def dispatch(self):
         """
         Dispatch a request to the appropriate resource, based on
         which resource the rule applies to.
         """
         # TODO: document request context variables.
-        ctx.dispatcher = self
-        ctx.resource = resource = self.endpoints[rule.endpoint]
-        ctx.url_values = url_values
+        request = ctx.request
+        url_values = ctx.url_values
+        resource = ctx.resource
+
         ctx.response = response = {'headers': {}} # response arguments
 
         try:

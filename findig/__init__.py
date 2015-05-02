@@ -82,7 +82,19 @@ class App(Dispatcher):
             except:
                 pass
 
-    def build_context(self):
+    def build_context(self, environ):
+        adapter = self.url_map.bind_to_environ(environ)
+        rule, url_values = adapter.match(return_rule=True)
+        dispatcher = self #self.get_dispatcher(rule)
+
+        # Set up context variables
+        ctx.app = self
+        ctx.url_adapter = adapter
+        ctx.request = self.request_class(environ)
+        ctx.url_values = url_values
+        ctx.dispatcher = dispatcher
+        ctx.resource = dispatcher.get_resource(rule)
+
         context = ExitStack()
         context.callback(self.__cleanup)
         # Add all the application's context managers to
@@ -98,23 +110,9 @@ class App(Dispatcher):
     def __call__(self, environ, start_response):
         # Set up the application context and run the
         # app inside it.
-        with self.build_context():
-            return self.wsgi_app(environ, start_response)
-
-    def wsgi_app(self, environ, start_response):
-        """
-        Run the WSGI application
-
-        :param environ: A WSGI environment
-        :param start_response: A WSGI file handle for the HTTP response.
-        :return: A response stream
-        """
         try:
-            ctx.app = self
-            ctx.url_adapter = adapter = self.url_map.bind_to_environ(environ)
-            ctx.request = request = self.request_class(environ)
-            rule, url_values = adapter.match(return_rule=True)
-            response = self.dispatch(request, rule, url_values)
+            with self.build_context(environ):
+                response = ctx.dispatcher.dispatch()
         except BaseException as err:
             try:
                 response = self.error_handler(err)
@@ -140,7 +138,7 @@ class App(Dispatcher):
         for endpoint in endpoints:
             # TODO: implement dispatcher API
             dispatcher = self
-            yield dispatcher.endpoints[endpoint]
+            yield dispatcher.get_resource(endpoints[endpoint])
 
 
     @cached_property

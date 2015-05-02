@@ -5,7 +5,7 @@ import pytest
 from findig import App
 from findig.context import ctx
 from findig.resource import AbstractResource
-from werkzeug.test import Client
+from werkzeug.test import Client, EnvironBuilder
 from werkzeug.wrappers import BaseResponse
 
 
@@ -27,16 +27,21 @@ def app():
     app.route(res, "/test")
     return app
 
+@pytest.fixture
+def environ():
+    builder = EnvironBuilder(path="/test")
+    return builder.get_environ()
 
 
-def test_app_context_management(app):
+
+def test_app_context_management(app, environ):
     @app.context
     def temp_file():
         fobj = NamedTemporaryFile()
         yield fobj
         fobj.close()
 
-    with app.build_context():
+    with app.build_context(environ):
         # The first part of the context manager should have been run
         # by here
         temp_fobj = ctx.temp_file
@@ -48,7 +53,7 @@ def test_app_context_management(app):
     assert temp_fobj.file.closed
     assert not hasattr(ctx, 'temp_file')
 
-def test_cleanup_hook(app):
+def test_cleanup_hook(app, environ):
     items = [49, 48, 43, 42]
 
     @app.cleanup_hook
@@ -64,19 +69,19 @@ def test_cleanup_hook(app):
 
     # Check that even after a request that throws an error during processing,
     # cleanup hooks still get called
-    with app.build_context():
+    with app.build_context(environ):
         items.extend([93, 3, 4, 5])
         with pytest.raises(ValueError):
             raise ValueError
 
     assert items == []
 
-def test_late_cleanup_hook(app):
+def test_late_cleanup_hook(app, environ):
     # Test that cleanup hooks registered during a request
     # are run
     items = [48, 45, 34, 65]
 
-    with app.build_context():
+    with app.build_context(environ):
         app.cleanup_hook(items.clear)
 
     assert items == []
