@@ -8,6 +8,7 @@ from werkzeug.wrappers import Response, BaseResponse
 
 from findig.content import ErrorHandler, Formatter, Parser
 from findig.context import ctx
+from findig.datapipe import DataPipe
 from findig.resource import Resource, AbstractResource
 
 class Dispatcher:
@@ -15,7 +16,8 @@ class Dispatcher:
 
     response_class = Response
 
-    def __init__(self, formatter=None, parser=None, error_handler=None):
+    def __init__(self, formatter=None, parser=None, error_handler=None,
+                       pre_processor=None, post_processor=None):
         self.route = singledispatch(self.route)
         self.route.register(str, self.route_decorator)
 
@@ -34,6 +36,8 @@ class Dispatcher:
         self.formatter = formatter
         self.parser = parser
         self.error_handler = error_handler
+        self.pre_processor = DataPipe() if pre_processor is None else pre_processor
+        self.post_processor = DataPipe() if post_processor is None else post_processor
 
         self.resources = {}
         self.routes = []
@@ -207,12 +211,16 @@ class Dispatcher:
                 return data
 
             elif data is not None:
+                process = DataPipe(
+                    getattr(resource, 'post_processor', None),
+                    self.post_processor
+                )
+                data = process(data)
 
                 format = Formatter.compose(
                     getattr(resource, 'formatter', Formatter()),
                     self.formatter
                 )
-
                 mime_type, data = format(data)
                 response['mimetype'] = mime_type
                 response['response'] = data

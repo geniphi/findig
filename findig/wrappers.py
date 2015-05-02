@@ -3,6 +3,7 @@ from werkzeug.wrappers import Request as Request_
 
 from findig.content import Parser
 from findig.context import ctx
+from findig.datapipe import DataPipe
 from findig.utils import tryeach
 
 
@@ -12,13 +13,20 @@ class Request(Request_):
 
     @cached_property
     def input(self):
-        return tryeach(
+        parsed = tryeach(
             [
                 getattr(ctx.resource, 'parser', Parser()),
                 ctx.dispatcher.parser
             ],
             self.data
         )[1]
+
+        process = DataPipe(
+            getattr(ctx.resource, 'pre_processor', None),
+            ctx.dispatcher.pre_processor
+        )
+
+        return process(parsed)
 
 
 __all__ = ['Request']
