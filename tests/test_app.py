@@ -49,9 +49,6 @@ def test_app_context_management(app):
     assert not hasattr(ctx, 'temp_file')
 
 def test_cleanup_hook(app):
-    # I guess since cleanp_hook is currently implemented through 
-    # an app context manager, this is really just a regression test in
-    # case that changes
     items = [49, 48, 43, 42]
 
     @app.cleanup_hook
@@ -71,5 +68,15 @@ def test_cleanup_hook(app):
         items.extend([93, 3, 4, 5])
         with pytest.raises(ValueError):
             raise ValueError
+
+    assert items == []
+
+def test_late_cleanup_hook(app):
+    # Test that cleanup hooks registered during a request
+    # are run
+    items = [48, 45, 34, 65]
+
+    with app.build_context():
+        app.cleanup_hook(items.clear)
 
     assert items == []

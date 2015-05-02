@@ -27,6 +27,7 @@ class App(Dispatcher):
 
         self.local_manager.locals.append(ctx)
         self.context_hooks = []
+        self.cleanup_hooks = []
 
         if autolist:
             self.route(self.iter_resources, "/")
@@ -70,16 +71,20 @@ class App(Dispatcher):
         return func
 
     def cleanup_hook(self, func):
-        @wraps(func)
-        def wrapper():
-            yield
-            func()
-        self.context(wrapper)
+        self.cleanup_hooks.append(func)
         return func
+
+    def __cleanup(self):
+        self.local_manager.cleanup()
+        for hook in self.cleanup_hooks:
+            try:
+                hook()
+            except:
+                pass
 
     def build_context(self):
         context = ExitStack()
-        context.callback(self.local_manager.cleanup)
+        context.callback(self.__cleanup)
         # Add all the application's context managers to
         # the exit stack. If any of them return a value,
         # we'll add the value to the application context
