@@ -9,7 +9,7 @@ class DataPipe:
 
         for func in funcs:
             if isinstance(func, DataPipe):
-                self.funcs.extend(func)
+                self.funcs.extend(func.funcs)
             elif isinstance(func, Iterable):
                 self.funcs.extend(func)
             elif isinstance(func, Callable):
