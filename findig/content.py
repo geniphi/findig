@@ -1,3 +1,18 @@
+"""
+These are helper implementations of content-handling 'functions' for
+parsing, formatting and error-handling. The module exposes 
+:class:`Parser`, :class:`Formatter` and :class:`ErrorHandler` respectively,
+each of which acts like a function but introduces some additional
+semantics.
+
+Although this is the default behavior, Findig applications are not
+required to use to tools provided by this module and may use any callable
+in their place.
+
+.. note:: Instances of :py:class:`Formatter` and :py:class:`Parser` require an
+    active request context to work when called.
+"""
+
 from abc import ABCMeta, abstractmethod
 from collections.abc import Callable
 from functools import partial
@@ -14,7 +29,7 @@ class HandlerAggregator:
     def __init__(self):
         self.handlers = {}
 
-    def register(self, key=None, handler=None):
+    def register(self, key, handler=None):
         def register_handler(handler):
             self.handlers[key] = handler
             return handler
@@ -33,14 +48,34 @@ class ErrorHandler(HandlerAggregator):
     """
     A generic implementation of a error handler 'function'.
 
-    A :class:ErrorHandler collects handler functions for specific
+    A :class:`ErrorHandler` collects handler functions for specific
     exception types, so that when it is called, it looks up the 
     appropriate handler for the exception that it is called with.
     The handler used is the closest superclass of the exception's type.
+    If no handler was registered for the exception, then it is raised
+    again.
 
     """
 
-    def register(self, err_type=None, handler=None):
+    def register(self, err_type, handler=None):
+        """
+        Register a handler function for a particular exception type and
+        its subclasses.
+
+        :param err_type: A type of Exception
+        :type: BaseException or subclass.
+        :handler: A function that will handle errors of the given type.
+        :type handler: func(e):NoneType
+
+        This method is also usable as a decorator factory::
+
+            handler = ErrorHandler()
+            @handler.register(ValueError)
+            def handle_value_err(e):
+                # Handle a value error
+                pass
+
+        """
         if not issubclass(err_type, BaseException):
             raise ValueError("Argument 'err_type': must be an "
                              "exception type.")
@@ -70,6 +105,19 @@ class ErrorHandler(HandlerAggregator):
 
 class ContentPipe(HandlerAggregator, metaclass=ABCMeta):
     def register(self, mime_type, handler=None, default=False):
+        """
+        Register a handler function for a particular content-type.
+
+        :param mime_type: A content type.
+        :param handler: A handler function for the given content type.
+        :param default: Whether the handler should be used for requests
+            which don't specify a preferred content-type. Only one default
+            content type may be given, so if ``default=True`` is set
+            multiple times, only the last one takes effect.
+
+        .. tip:: This method can also be used as a generator factory.
+
+        """
         if mime_type.count("/") != 1:
             raise ValueError("Argument 'mime_type': doesn't appear to be a "
                              "valid mime-type")
@@ -91,13 +139,10 @@ class Formatter(ContentPipe):
     """
     A generic implementation of a formatter 'function'.
 
-    A :class:Formatter collects handler functions for specific mime-types,
+    A :class:`Formatter` collects handler functions for specific mime-types,
     so that when it is called, it looks up the the appropriate function
     to call in turn, according to the mime-type specified by the request's
-    ``Accept`` header
-
-    .. note:: Instances of this class require an active request context
-              in order to work properly.
+    ``Accept`` header.
 
     """
 
@@ -175,13 +220,10 @@ class Parser(ContentPipe):
     """
     A generic implementation of a parser 'function'.
 
-    A :class:Parser collects handler functions for specific mime-types,
+    A :class:`Parser` collects handler functions for specific mime-types,
     so that when it is called, it looks up the the appropriate function
     to call in turn, according to the mime-type specified by the request's
-    ``Content-Type`` header
-
-    .. note:: Instances of this class require an active request context
-              in order to work properly.
+    ``Content-Type`` header.
 
     """
     def choose_best_handler(self):
