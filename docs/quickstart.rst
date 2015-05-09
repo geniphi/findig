@@ -1,3 +1,5 @@
+.. _quickstart:
+
 Quickstart
 ==========
 
@@ -5,7 +7,7 @@ Ready to get started? This section gives you a quick introduction to
 using Findig and it's basic patterns.
 
 
-The Tiniest JSON application
+The tiniest JSON application
 ----------------------------
 
 Here's the smallest app you can write in Findig::
@@ -48,7 +50,7 @@ resources available on the API. Since we haven't added any other resources,
 this is the only one available.
 
 
-Adding Resources
+Adding resources
 ----------------
 
 To add a resource, tell the app how to get the resource's data, and
@@ -159,7 +161,7 @@ See :py:class:`finding.resource.Collection` for a full listing of
 arguments that you can pass to collections.
 
 
-Data Operations
+Data operations
 ---------------
 
 The HTTP methods that Findig will expose depends on the data
@@ -227,3 +229,91 @@ a resource through it's route::
 ``405: METHOD NOT ALLOWED``, even though we have a *write* operation
 defined.
 
+
+Custom applications
+-------------------
+
+Suppose you wanted to build an API that *wasn't* JSON (hey, I'm not
+here to judge)? That's entirely possible. You just have to tell Findig
+how to convert to and from the content-types that you plan to use.
+
+.. code-block:: python
+
+    from findig import App
+
+    app = App()
+
+    @app.formatter.register("text/xml")
+    def convert_to_xml(data):
+        s = to_xml(data)
+        return s # always return a string
+
+    @app.parser.register("text/xml")
+    def convert_from_xml(s)
+        obj = from_xml(s)
+        return obj
+
+Pretty straightforward stuff; ``convert_to_xml`` is a function that takes
+resource data and converts it to an xml string. We register it as the 
+data formatter for the ``text/xml`` content-type using the
+``@app.formatter.register("text/xml")`` decorator. Whenever a client
+sends an ``Accept`` header with the ``text/xml`` content-type, this
+formatter will be used. Similarly, ``convert_from_xml`` converts an xml
+string to resource data, and is called when a request with a ``text/xml``
+content-type is received.
+
+That's great, but what happens if the client doesn't send an ``Accept``
+header, or if it sends request content without a content-type? Well,
+Findig will send a ``text/plain`` response (it calls *str* on the
+resource data; hardly elegant) in the first case, and send back an
+``UNSUPPORTED MEDIA TYPE`` error in the second case. To avoid this, you
+can set a default content-type that is assumed if the client doesn't
+specify one. Here's the same example from above setting ``text/xml``
+as the default:
+
+.. code-block:: python
+
+    from findig import App
+
+    app = App()
+
+    @app.formatter.register("text/xml", default=True)
+    def convert_to_xml(data):
+        s = to_xml(data)
+        return s # always return a string
+
+    @app.parser.register("text/xml", default=True)
+    def convert_from_xml(s)
+        obj = from_xml(s)
+        return obj
+
+.. tip:: :py:class:`findig.json.App` does this for the ``application/json``
+    content-type.
+
+An application can register as many parsers and formatters as it needs,
+and can even register them on specific resources. Here's how::
+
+    from pickle import dumps
+    from findig import App
+
+    app = App()
+    app.formatter.register("x-application/python-pickle", dumps, default=True)
+
+    @app.route("/my-resource")
+    def resource():
+        return {
+            "name": "Jon",
+            "age": 23,
+        }
+
+    @resource.formatter.register("text/xml")
+    def format_resource(data):
+        return "<resource><name>{}</name><age>{}</age></resource>".format(
+            data['name'],
+            data['age']
+        )
+
+So this app has a global formatter that pickles resources and returns 
+them to the client (look, it's just an example, okay?). However, it has a
+special resource that can handle ``text/xml`` responses as well, using the
+resource-specific formatter that we defined.
