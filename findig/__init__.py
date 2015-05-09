@@ -1,3 +1,11 @@
+"""
+The core Findig namespace defines the Findig :class:App class, which
+is essential to building Findig applications. Every :class:App is
+capable of registering resources as well as URL routes that point to them,
+and is a WSGI callable that can be passed to any WSGI complaint server.
+
+"""
+
 from contextlib import contextmanager, ExitStack
 from functools import wraps
 from os.path import join, dirname
@@ -18,11 +26,22 @@ with open(join(dirname(__file__), "VERSION")) as fh:
 
 
 class App(Dispatcher):
+    #: The class used to wrap WSGI environments by this App instance.
     request_class = Request
-    local_manager = LocalManager()
+    # This is used internally to track and clean up context variables
+    local_manager = LocalManager() 
 
 
     def __init__(self, autolist=False):
+        """
+        Create a new App instance.
+
+        :param autolist: If true, a "lister" resource is created and 
+            registered at the URL ``/``. This resource will list all
+            of the resources registered with the application which have
+            URL rules.
+
+        """
         super(App, self).__init__()
 
         self.local_manager.locals.append(ctx)
@@ -40,7 +59,7 @@ class App(Dispatcher):
         used to wrap request contexts. It is called at the beginning of a 
         request context, during which it yields control to Findig, and 
         regains control sometime after findig processes the request. If 
-        the function yields are value, it is made available as an
+        the function yields a value, it is made available as an
         attribute on ``findig.context.ctx`` with the same name as the
         function.
 
@@ -71,6 +90,10 @@ class App(Dispatcher):
         return func
 
     def cleanup_hook(self, func):
+        """
+        Register a function that should run after each request in the
+        application.
+        """
         self.cleanup_hooks.append(func)
         return func
 
@@ -83,6 +106,19 @@ class App(Dispatcher):
                 pass
 
     def build_context(self, environ):
+        """
+        Start a request context.
+
+        :param environ: A WSGI environment.
+        :return: A context manager for the request. When the context
+            manager exits, the request context variables are destroyed and
+            all cleanup hooks are run.
+
+        .. note:: This method is intended for internal use; Findig will
+            call this method internally on its own. It is *not* re-entrant
+            with a single request.
+
+        """
         adapter = self.url_map.bind_to_environ(environ)
         rule, url_values = adapter.match(return_rule=True)
         dispatcher = self #self.get_dispatcher(rule)
@@ -167,7 +203,6 @@ class App(Dispatcher):
             return response(environ, start_response)
 
     def iter_resource_rules(self, resource):
-        """An iterable for all the url rules registered for a resource."""
         yield from self.url_map.iter_rules(resource.name)
 
     def iter_resources(self, adapter=None):
