@@ -1,5 +1,5 @@
-findig.content: formatters, parsers and error handlers
-======================================================
+:mod:`findig.content` --- Formatters, parsers and error handlers
+================================================================
 
 .. automodule:: findig.content
 

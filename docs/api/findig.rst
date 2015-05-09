@@ -1,5 +1,5 @@
-findig
-======
+:mod:`findig` --- Base class for creating WSGI callables
+========================================================
 
 .. automodule:: findig
 
