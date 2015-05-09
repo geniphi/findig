@@ -5,10 +5,11 @@ import inspect
 import itertools
 import uuid
 from collections.abc import Mapping
+from functools import partial
 
 from werkzeug.exceptions import MethodNotAllowed, NotFound
 from werkzeug.routing import BuildError as URLBuildError
-from werkzeug.utils import cached_property
+from werkzeug.utils import cached_property, validate_arguments
 
 from findig.content import ErrorHandler, Formatter, Parser
 from findig.context import url_adapter, request, ctx
@@ -197,28 +198,31 @@ class Resource(AbstractResource):
         method = request.method.upper()
         try:
             model = self.compose_model(wrapper_args)
-            return self._handle_request_with_model(request, method, model)
+            handler = self._extract_handler(request, method, model)
+
+            args, kwargs = validate_arguments(handler.func, handler.args, wrapper_args)
+            return handler.func(*args, **kwargs)
             
         except BaseException as err:
             return self.error_handler(err)
 
-    def _handle_request_with_model(self, request, method, model):
+    def _extract_handler(self, request, method, model):
         supported_methods = self.get_supported_methods(model)
 
         if method not in supported_methods and method != 'HEAD':
             raise MethodNotAllowed(list(supported_methods))
 
         elif method == 'GET' or method == 'HEAD':
-            return model['read']()
+            return partial(model['read'])
 
         elif method == 'DELETE':
-            return model['delete']()
+            return partial(model['delete'])
 
         elif method == 'PUT':
-            return model['write'](request.input)
+            return partial(model['write'], request.input)
 
         else:
-            raise ValueError        
+            raise ValueError    
         
     def collection(self, wrapped=None, **args):
         """
@@ -276,24 +280,27 @@ class Collection(Resource):
 
         return supported
 
-    def _handle_request_with_model(self, request, method, model):
-        if method == 'POST' and 'make' in model:
-            token = model['make'](request.input)            
+
+    def _extract_handler(self, request, method, model):
+        if method == 'POST':
+            return partial(model['make'], request.input)
+        else:
+            return super()._extract_handler(request, method, model)
+
+    def handle_request(self, request, wrapper_args):
+        ret = super().handle_request(request, wrapper_args)
+
+        if request.method.lower() == 'post':
             ctx.response.setdefault('status', 201)
+
             url = self._try_build_item_url(data)
             if url is not None:
                 ctx.response['headers'].setdefault('Location', url)
-            return token
-        else:          
-            ret_data = super()._handle_request_with_model(
-                request, method, model
-            )
 
-            if method == 'GET' and self.include_urls:
-                # We should modify the iterated items to add a URL
-                return map(self._include_url_in_item, ret_data)
-            else:
-                return ret_data
+        elif method == 'GET' and self.include_urls:
+            ret = map(self._include_url_in_item, ret)
+
+        return ret
 
     def _include_url_in_item(self, item):
         url = self._try_build_item_url(item)
