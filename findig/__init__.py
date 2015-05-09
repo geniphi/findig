@@ -119,14 +119,14 @@ class App(Dispatcher):
             with a single request.
 
         """
-        adapter = self.url_map.bind_to_environ(environ)
+        ctx.app = self
+        ctx.url_adapter = adapter = self.url_map.bind_to_environ(environ)
+        ctx.request = self.request_class(environ) # ALWAYS set this after adapter
+
         rule, url_values = adapter.match(return_rule=True)
         dispatcher = self #self.get_dispatcher(rule)
 
         # Set up context variables
-        ctx.app = self
-        ctx.url_adapter = adapter
-        ctx.request = self.request_class(environ)
         ctx.url_values = url_values
         ctx.dispatcher = dispatcher
         ctx.resource = dispatcher.get_resource(rule)
