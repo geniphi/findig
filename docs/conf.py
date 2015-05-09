@@ -52,7 +52,10 @@ extensions = [
 ]
 
 # Our intersphinx mapping
-intersphinx_mapping = {'python': ('https://docs.python.org/', None)}
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/', None),
+    'werkzeug': ('http://werkzeug.pocoo.org/docs', None),
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
