@@ -51,6 +51,8 @@ extensions = [
     'sphinx.ext.intersphinx',
 ]
 
+autodoc_member_order = 'groupwise'
+
 # Our intersphinx mapping
 intersphinx_mapping = {
     'python': ('https://docs.python.org/', None),
