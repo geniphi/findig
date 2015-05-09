@@ -57,7 +57,7 @@ class App(Dispatcher):
             ...     yield 42
             ...     items.clear()
             ...
-            >>> with app.build_context(): # don't use this unless you're testing, but this is how Findig sets up your request context
+            >>> with app.test_context(create_route=True):
             ...     print("The meaning of", end=" ")
             ...     print(*items, sep=", ", end=": ")
             ...     print(ctx.meaning)
@@ -106,6 +106,50 @@ class App(Dispatcher):
             if retval is not None:
                 setattr(ctx, hook.__name__, retval)
         return context
+
+    def test_context(self, create_route=False, **args):
+        """
+        Make a mock request context for testing.
+
+        A mock request context is generated using the arguments here.
+        In other words, context variables are set up and callbacks are
+        registered. The returned object is intended to be used as a
+        context manager::
+
+            app = App()
+            with app.test_context():
+                # This will set up request context variables
+                # that are needed by some findig code.
+                do_some_stuff_in_the_request_context()
+            
+            # After the with statement exits, the request context
+            # variables are cleared. 
+
+        This method is really just a shortcut for creating a fake
+        WSGI environ with :py:class:`werkzeug.test.EnvironBuilder` and
+        passing that to :meth:`build_context`. It takes the very same
+        keyword parameters as :py:class:`~werkzeug.test.EnvironBuilder`;
+        the arguments given here are passed directly in.
+
+        :keyword create_route: Create a URL rule routing to a mock resource,
+            which will match the path of the mock request. This must be set to True if the mock
+            request being generated doesn't already have a route registered
+            for the request path, otherwise this method will raise a
+            :py:class:`werkzeug.exceptions.NotFound` error. 
+
+        :return: A context manager for a mock request.
+        """
+        from werkzeug.test import EnvironBuilder
+
+        if create_route:
+            path = args.get('path', '/')
+            self.route(lambda: {}, path)
+
+
+        ctx.testing = True
+        builder = EnvironBuilder(**args)
+        return self.build_context(builder.get_environ())
+
 
     def __call__(self, environ, start_response):
         # Set up the application context and run the
