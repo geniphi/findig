@@ -1,3 +1,14 @@
+"""
+This module defines data models, which implement data access for a
+particular resource. In a typical Findig application, each resource has
+an :class:`AbstractDataModel` attached which has functions defined
+implementing the data operations that are supported by that resource.
+
+By default, :class:`Resources <findig.resource.Resource>` have a 
+:class:`DataModel` attached, but this can be replaced with any concrete
+:class:`AbstractDataModel`.
+"""
+
 from abc import ABCMeta, abstractmethod
 from collections.abc import Callable, Mapping, MutableMapping
 
@@ -10,18 +21,33 @@ class AbstractDataModel(Mapping, metaclass=ABCMeta):
     Essentially, it is a mapping of data operations to the functions
     that perform.
 
-    The following data operations and their signatures are supported:
+    The following data operations (and their signatures) are supported:
 
-    :read(): Retrieve the data for the resource.
-    :write(new_data): Replace a resource's data completely with the new
-                      data given. Further, if the resource doesn't yet
-                      exist, create it.
-    :delete(): Completely obliterate a resource's data; in general the
-               resource should be thought to no longer exist after this
-               occurs.
-    :make(data)->dict_of_ids: Create a child resource of this
-                              resource and return its identifying
-                              data.
+    * .. function:: read()
+        :noindex:
+
+        Retrieve the data for the resource.
+
+    * .. function:: write(data)
+        :noindex:
+
+        Replace the resource's existing data with the new data. If 
+        the resource doesn't exist yet, create it.
+
+    * .. function:: delete()
+        :noindex:
+
+        Completely obliterate a resource's data; in general the
+        resource should be thought to no longer exist after this
+        occurs.
+
+    * .. function:: make(data)
+        :noindex:
+
+        Create a child resource.
+
+        :return: A mapping that can identify the created child (i.e.,
+            a key).
 
     To implement this abstract base class, do *either* of the following:
 
@@ -129,6 +155,14 @@ class DataModel(AbstractDataModel, MutableMapping):
         return decorator
 
 class DataSetDataModel(AbstractDataModel):
+    """
+    A concrete data model that wraps a data set.
+
+    :param dataset: A data set that is wrapped.
+    :type dataset: Iterable, Mapping, :py:class:`MutableDataSet`
+        or :py:class:`MutableDataRecord`
+
+    """
     def __init__(self, dataset):
         self.ds = dataset
 
@@ -161,4 +195,4 @@ class DataSetDataModel(AbstractDataModel):
             return self.ds.delete
 
 
-__all__ = ['AbstractDataModel', 'DictDataModel', 'DataModel']
+__all__ = ['AbstractDataModel', 'DictDataModel', 'DataModel', 'DataSetDataModel']
