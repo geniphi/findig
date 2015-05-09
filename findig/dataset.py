@@ -20,8 +20,8 @@ class AbstractDataSet(Iterable, metaclass=ABCMeta):
         )
 
     def fetch(self, **search_spec):
-        if hasattr(ctx, 'request'):
-            # We're inside a request, so we can immediately grab a
+        if hasattr(ctx, 'request') and ctx.request.method.lower() in ('get', 'head'):
+            # We're inside a GET request, so we can immediately grab a
             # record and return it
             return self.fetch_now(**search_spec)
             
