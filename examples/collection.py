@@ -6,31 +6,19 @@ from werkzeug.serving import run_simple
 
 app = App(indent=2)
 
-#TASKS = {} # Fake data store
+ITEMS = {} # Fake data store
 
-#@app.route('/tasks/<int:id>')
-#@app.resource
-#def task(id):
-#    return tasks.model.dataset.fetch(id=id)
+@app.route("/items/<int:id>")
+def item(id):
+    return ITEMS[id]
 
-#@app.route('/tasks/')
-#@task.collection(key='id')
-#def tasks():
-#    return (task for task in TASKS)
+@item.model("write")
+def put_item(data, id):
+    ITEMS[id] = data
 
-#@tasks.model('update')
-#@tasks.model('create')
-#def put_task(res):
-#    if not hasattr(res, 'id'):
-#        res.id = id(res) #stupid hack; don't do this
-
-#    task = dict(res)
-#    TASKS[res.id] = task
-
-#@tasks.model('delete')
-#def remove_task(res):
-#    del TASKS[res.id]
-
+@item.model("delete")
+def delete_item(data, id):
+    del ITEM[id]
 
 ################################
 # Alternative using a data set #
