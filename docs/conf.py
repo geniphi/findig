@@ -55,7 +55,7 @@ autodoc_member_order = 'groupwise'
 
 # Our intersphinx mapping
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/', None),
+    'python': ('https://docs.python.org/3/', None),
     'werkzeug': ('http://werkzeug.pocoo.org/docs', None),
 }
 
