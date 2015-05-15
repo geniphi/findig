@@ -60,7 +60,7 @@ class App(Dispatcher):
         request context, during which it yields control to Findig, and 
         regains control sometime after findig processes the request. If 
         the function yields a value, it is made available as an
-        attribute on ``findig.context.ctx`` with the same name as the
+        attribute on :data:`findig.context.ctx` with the same name as the
         function.
 
         Example::
