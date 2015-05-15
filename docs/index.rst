@@ -61,3 +61,4 @@ This section isn't ready yet. Please check back later.
    api/content
    api/context
    api/datamodel
+   api/counter
