@@ -417,8 +417,8 @@ class _HitLog(AbstractLog):
         now = datetime.now()
         with self._thread_lock:
             while self._hits and (now - self._hits[0][0]) > self._delta:
-                time, partitions = heapq.heappop(self._hits)
-                self._counter.subtract(self._generate_counter_keys(partitions))
+                time, counter_keys = heapq.heappop(self._hits)
+                self._counter.subtract(counter_keys)
 
     def _generate_counter_keys(self, partitions):
         sub_keys = chain.from_iterable(
@@ -433,8 +433,9 @@ class _HitLog(AbstractLog):
         now = datetime.now()
 
         with self._thread_lock:
-            heapq.heappush(self._hits, (now, partitions))
-            self._counter.update(self._generate_counter_keys(partitions))
+            counter_keys = tuple(self._generate_counter_keys(partitions))
+            heapq.heappush(self._hits, (now, counter_keys))
+            self._counter.update(counter_keys)
 
     def count(self, **partitions):
         self._prune()
