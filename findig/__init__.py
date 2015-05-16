@@ -9,6 +9,7 @@ and is a WSGI callable that can be passed to any WSGI complaint server.
 from contextlib import contextmanager, ExitStack
 from functools import wraps
 from os.path import join, dirname
+from threading import Lock
 import traceback
 
 from werkzeug.local import LocalManager
@@ -47,6 +48,11 @@ class App(Dispatcher):
         self.local_manager.locals.append(ctx)
         self.context_hooks = []
         self.cleanup_hooks = []
+        self.startup_hooks = []
+        self._startup_hook_lock = Lock()
+        self._startup_hooks_run = False
+
+        self.startup_hooks.append(self.__build_url_map)
 
         if autolist:
             self.route(self.iter_resources, "/")
@@ -97,13 +103,30 @@ class App(Dispatcher):
         self.cleanup_hooks.append(func)
         return func
 
+    def startup_hook(self, func):
+        """
+        Register a function to be run before the very first request in
+        the application.
+        """
+        self.startup_hooks.append(func)
+        return func
+
     def __cleanup(self):
-        self.local_manager.cleanup()
         for hook in self.cleanup_hooks:
             try:
                 hook()
             except:
                 pass
+        else:            
+            self.local_manager.cleanup()
+
+    def __run_startup_hooks(self):
+        if not self._startup_hooks_run:
+            with self._startup_hook_lock:
+                for hook in self.startup_hooks:
+                    hook()
+                else:
+                    self._startup_hooks_run = True
 
     def build_context(self, environ):
         """
@@ -119,6 +142,8 @@ class App(Dispatcher):
             with a single request.
 
         """
+        self.__run_startup_hooks()
+
         ctx.app = self
         ctx.url_adapter = adapter = self.url_map.bind_to_environ(environ)
         ctx.request = self.request_class(environ) # ALWAYS set this after adapter
@@ -219,7 +244,5 @@ class App(Dispatcher):
             dispatcher = self
             yield dispatcher.get_resource(endpoints[endpoint])
 
-
-    @cached_property
-    def url_map(self):
-        return Map([r for r in self.build_rules()])
+    def __build_url_map(self):
+        self.url_map = Map([r for r in self.build_rules()])
