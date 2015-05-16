@@ -5,7 +5,7 @@ from werkzeug.exceptions import *
 from werkzeug.datastructures import MultiDict
 from werkzeug.test import Client, EnvironBuilder
 
-from findig.validator import InvalidSpecificationError, Validator
+from findig.tools.validator import InvalidSpecificationError, Validator
 from findig.json import App
 from findig.wrappers import Request
 
@@ -18,13 +18,6 @@ def app():
 @pytest.fixture
 def client(app):
     return Client(app)
-
-@pytest.fixture
-def request_context(app):
-    app.route(lambda:None, "/")
-    builder = EnvironBuilder("/")
-
-    return app.build_context(builder.get_environ())
 
 parametrize = pytest.mark.parametrize('spec,data,expected', [
     (   # General test
@@ -67,31 +60,50 @@ parametrize = pytest.mark.parametrize('spec,data,expected', [
         {'foo': '029b2439-b561-4ec8-bdf0-710b6148a70d', 'bar': 'door'},
         {'foo': uuid.UUID('029b2439-b561-4ec8-bdf0-710b6148a70d'), 'bar': 'door'}
     ),
+    (
+        # Another converter, but a failed match
+        {'foo': 'any(john,jane)'},
+        {'foo': 'harry', 'bar': 'john'},
+        BadRequest
+    ),
+    (
+        # Using a list containing a werkzeug converter
+        {'foo': ['any(john,jane)']},
+        MultiDict([('foo', 'john'), ('foo', 'jane'), ('foo', 'john')]),
+        MultiDict([('foo', 'john'), ('foo', 'jane'), ('foo', 'john')]),
+    ),
 ])
 
 @parametrize
-def test_validate_method(request_context, spec, data, expected):
-    validator = Validator()
+def test_validate_method(app, spec, data, expected):
+    validator = Validator(app)
     validator.enforce_all(**spec)
 
-    # Validators only work inside a request
-    with request_context:
-        if isinstance(expected, type) and issubclass(expected, Exception):
-            with pytest.raises(expected):
+    def runtest():
+        with app.test_context(path="/", create_route=True):
+            if isinstance(expected, MultiDict):
+                assert validator.validate(data).to_dict(flat=False) == expected.to_dict(flat=False)
+            else:
                 assert validator.validate(data) == expected
-        elif isinstance(expected, MultiDict):
-            assert validator.validate(data).to_dict(flat=False) == expected.to_dict(flat=False)
-        else:
-            assert validator.validate(data) == expected
+
+    # Validators only work inside a request
+    if isinstance(expected, type) and issubclass(expected, Exception):
+        with pytest.raises(expected):
+            runtest()
+    else:
+        runtest()
 
 @parametrize
-def test_validation_process(app, request_context, spec, data, expected):
+def test_validation_process(app, spec, data, expected):
     validator = Validator(app)
-    validator.enforce_all(**spec)   
+    validator.enforce_all(**spec)
 
-    with request_context:
-        if isinstance(expected, type) and issubclass(expected, Exception):
-            with pytest.raises(expected):
-                assert app.pre_processor(data) == expected
-        else:
+    def runtest():
+        with app.test_context(path="/", create_route=True):
             assert app.pre_processor(data) == expected
+
+    if isinstance(expected, type) and issubclass(expected, Exception):
+        with pytest.raises(expected):
+            runtest()
+    else:
+        runtest()
