@@ -12,7 +12,7 @@ By default, :class:`Resources <findig.resource.Resource>` have a
 from abc import ABCMeta, abstractmethod
 from collections.abc import Callable, Mapping, MutableMapping
 
-from findig.dataset import MutableDataSet, MutableRecord
+from findig.tools.dataset import MutableDataSet, MutableRecord
 
 
 class AbstractDataModel(Mapping, metaclass=ABCMeta):

@@ -6,8 +6,8 @@ from time import time
 import redis
 
 from findig.context import ctx
-from findig.dataset import MutableDataSet, MutableRecord, FilteredDataSet
 from findig.resource import AbstractResource
+from findig.tools.dataset import MutableDataSet, MutableRecord, FilteredDataSet
 
 
 class IndexToken(Mapping):

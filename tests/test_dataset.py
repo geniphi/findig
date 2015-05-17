@@ -1,6 +1,6 @@
 #-*- coding: utf-8 *-*
 import pytest
-from findig.dataset import *
+from findig.tools.dataset import *
 
 
 class MockDataSet(MutableDataSet):
