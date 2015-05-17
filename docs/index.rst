@@ -57,8 +57,5 @@ This section isn't ready yet. Please check back later.
 .. toctree::
    :maxdepth: 2
 
-   api/findig
-   api/content
-   api/context
-   api/datamodel
-   api/counter
+   api/index
+   api/tools/index
