@@ -1,8 +1,10 @@
-:mod:`findig` --- Base class for creating WSGI callables
-========================================================
+App --- classes for creating WSGI callables
+===========================================
 
 .. automodule:: findig
 
     .. autoclass:: App
         :members:
         :show-inheritance:
+
+    .. autoclass:: findig.json.App

@@ -15,7 +15,22 @@ from findig.resource import AbstractResource, Collection, Resource
 
 
 class CustomEncoder(json.JSONEncoder):
+    """
+    A custom :class:`json.JSONEncoder` that goes a bit further to coerce
+    data into json.
+
+    Any Python mapping is converted to a javascript object.
+
+    Any Python iterable that isn't a mapping is converted to a list.
+
+    The encoder also provides an object representation for
+    :class:`~findig.resource.AbstractResource`.
+
+    """
+
+    #: A pattern that matches the variable parts of a URL rule.
     value_pattern = re.compile("<(?:.*?:)?(.*?)>")
+
     def default(self, obj):
         if isinstance(obj, Mapping):
             return dict(obj)
@@ -99,16 +114,28 @@ class JSONMixin:
 
 
 class Dispatcher(JSONMixin, Dispatcher_):
-    """A :class:Dispatcher for use with JSON applications."""
+    """A :class:`Dispatcher` for use with JSON applications."""
 
 
 class App(JSONMixin, App_):
     """
-    An :class:App that works with application/json data.
+    App(indent=None, encoder_cls=None, autolist=False)
 
-    This app is pre-configured to parse incoming application/json data,
-    output application/json data by default and convert errors to
-    application/json responses.
+    A :class:`findig.App` that works with application/json data.
+
+    This app is pre-configured to parse incoming ``application/json`` data,
+    output ``application/json`` data by default and convert errors to
+    ``application/json`` responses.
+
+    :param indent: The number of spaces to indent by when outputting 
+        JSON. By default, no indentation is used.
+    :param encoder_cls: A :class:`json.JSONEncoder` subclass that should be
+        used to serialize data into JSON. By default, an encoder that
+        converts all mappings to JSON objects and all other iterables to
+        JSON lists in addition to the normally supported simplejson types
+        (int, float, str) is used.
+    :param autolist: Same as the *autolist* parameter in 
+        :class:`findig.App`.
 
     """
 
