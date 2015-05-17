@@ -1,5 +1,5 @@
 import pytest
-from findig.datapipe import DataPipe
+from findig.utils import DataPipe
 
 
 @pytest.mark.parametrize("val", [10, "Foo$&4fhs", None, 74.37473764])
