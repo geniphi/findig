@@ -35,8 +35,9 @@ be a list of items for which that converter works::
 
 Converters can also be string specifications corresponding to a 
 pre-registered converter and its arguments. All of
-werkzeug's :py:werkzeug:`builtin converters` and their arguments are
-pre-registered and thus usable::
+werkzeug's 
+`builtin converters and their arguments`__ 
+and their arguments are pre-registered and thus usable::
 
     @validator.enforce(foo='any(bar,baz)', cid='string(length=3)')
     @app.route("/test3")
@@ -47,6 +48,8 @@ pre-registered and thus usable::
     def write_resource(data):
         assert data['foo'] in ('bar', 'baz')
         assert len(data['cid']) == 3
+
+__ http://werkzeug.pocoo.org/docs/routing/#builtin-converters
 
 """
 
@@ -76,11 +79,137 @@ class converter_spec(namedtuple('converter_spec', 'name args')):
             return repr("{}({})".format(self.name, self.args))
 
 class Validator:
+    """
+    A higher-level tool to be used to validate request input data.
+
+    :param app: The Findig application that the validator is attached to.
+    :type app: :class:`findig.App`
+
+    Validators are only capable of validating request input data (i.e., 
+    data received as part of the request body). To validate URL fragments,
+    consider using *converters* in your URL rules. See 
+    `werkzeug's routing reference <http://werkzeug.pocoo.org/docs/0.10/routing/#rule-format>`_.
+
+    Validators work by specifying converters for request input fields.
+    If a converter is specified, the validator to use it to convert the
+    field and replace it with the converted value. A converter can be
+    any of the following:
+
+    *   :class:`collections.abc.Callable` (including functions) -- This can
+        be a simple type such as :class:`int` or :class:`uuid.UUID`, but
+        any function or callable can work. It should take a string and 
+        convert it to a value of the desired type. If it throws an error,
+        then findig will raise a :class:`~werkzeug.exceptions.BadRequest` 
+        exception.
+
+        Example::
+       
+            # Converts an int from a valid string base 10 representation:
+            validator.enforce(resource, game_id=int)
+
+            # Converts to a float from a valid string
+            validator.enforce(resource, duration=float)
+
+    *   :class:`str` -- If a string is given, then it is interpreted as a
+        converter specification. A converter specification includes the
+        converter name and optionally arguments for pre-registered
+        converters. The following converters are pre-registered by
+        default (you may notice that they correspond to the URL rule
+        converters available for werkzeug):
+
+        .. function:: string(minlength=1, length=None, maxlength=None)
+            :noindex:
+
+            This converter will accept a string.
+            
+            :param length: If given, it will indicate a fixed length field.
+            :param minlength: The minimum allowed length for the field.
+            :param maxlength: The maximum allowed length for the field.
+
+        .. function:: any(*items)
+            :noindex:
+
+            This converter will accept only values from the variable
+            list of options passed as the converter arguments. It's
+            useful for limiting a field's value to a small set of possible
+            options.
+
+        .. function:: int(fixed_digits=0, min=None, max=None)
+            :noindex:
+
+            This converter will accept a string representation of a
+            non-negative integer.
+
+            :param fixed_digits: The number of fixed digits in the field.
+                For example, set this to **3** to convert ``'001'`` but not
+                ``'1'``. The default is a variable number of digits.
+            :param min: The minimum allowed value for the field.
+            :param max: The maximum allowed value for the field.
+
+        .. function:: float(min=None, max=None)
+            :noindex:
+
+            This converter will accept a string representation of a
+            non-negative floating point number.
+
+            :param min: The minimum allowed value for the field.
+            :param max: The maximum allowed value for the field.
+
+        .. function:: uuid()
+            :noindex:
+
+            This converter will accept a string representation of a
+            uuid and convert it to a :class:`uuid.UUID`.
+
+        Converters that do not need arguments can omit the parentheses
+        in the converter specification.
+
+        Examples::
+
+            # Converts a 4 character string
+            validator.enforce(resource, student_id='string(length=10)')
+
+            # Converts any of these string values: 'foo', 1000, True
+            validator.enforce(resource, field='any(foo, 1000, True)')
+
+            # Converts any non-negative integer
+            validator.enforce(resource, game_id='int')
+
+            # and any float <1000
+            validator.enforce(resource, duration='float(max=1000)')
+
+    *   or, :class:`list` -- This must be a singleton list containing a
+        converter. When this is given, the validator will treat the field
+        like a list and use the converter to convert each item.
+
+        Example::
+
+            # Converts a list of integers
+            validator.enforce(resource, games=[int])
+
+            # Converts a list of uuids
+            validator.enforce(resource, components=['uuid'])
+
+            # Converts a list of fixed length strings
+            validator.enforce(resource, students=['string(length=10)'])
+
+    """
     def __init__(self, app):
         self.validation_specs = {}
         self.attach_to(app)
 
     def attach_to(self, app):
+        """
+        Hook the validator into a Findig application.
+
+        Doing so allows the validator to inspect and replace incoming
+        input data. This is called automatically for an app passed to the
+        validator's constructor, but can be called for additional app
+        instances. This function should only be called once per application.
+
+        :param app: The Findig application that the validator is attached to.
+        :type app: :class:`findig.App`
+        """
         # Hook the validator into the dispatcher's data pre processor
         # so that we can look at incoming request data and complain
         # if the request data doesn't match what we're looking for
@@ -88,6 +217,33 @@ class Validator:
         app.startup_hook(partial(self.__prepare_converters, app))
 
     def enforce(self, *args, **validator_spec):
+        """
+        enforce(resource, **validation_spec)
+
+        Register a validation specification for a resource.
+
+        The validation specification is a set of ``field=converter``
+        arguments linking an input field name to a converter that should
+        be used to validate the field::
+
+            validator.enforce(res, uid=int, friends=[int])
+
+        This method can be used as a decorator factory for resources::
+
+            @validator.enforce(uid=int, friends=[int])
+            @app.route("/")
+            def res():
+                return {}
+
+        Both of these examples will convert the *uid* field on incoming
+        request data to an integer, and the *friends* field to a list of
+        integers.
+
+        .. warning:: Because of the way validators are hooked up, registering
+            new specifications after the first request has run might cause
+            unexpected behavior (and even internal server errors).
+
+        """
         def decorator(resource):
             self.__register_spec(resource.name, validator_spec)
             return resource
@@ -100,6 +256,23 @@ class Validator:
             raise TypeError
 
     def enforce_all(self, **validator_spec):
+        """
+        enforce_all(**validation_spec)
+
+        Register a global validation specification.
+
+        This function works like :meth:`enforce`, except that the
+        validation specification is registered for all resources instead
+        of a single one.
+
+        (Consequently, this function *cannot* be used a decorator factory
+        for resources)
+
+        Global validation specifications have lower precedence that a
+        resource specific one.
+
+        """
+        
         self.__register_spec(None, validator_spec)
 
     def __register_spec(self, key, spec):
@@ -193,6 +366,21 @@ class Validator:
             raise InvalidSpecificationError(item_spec)
 
     def validate(self, data):
+        """
+        Validate the data with the validation specifications that have
+        been collected.
+
+        This function must be called within an active request context in
+        order to work.
+
+        :param data: Input data
+        :type data: mapping, or object with gettable/settable fields
+        :raises: :class:`ValidationFailed` if one or more fields could not be
+            validated.
+
+        **This is an internal method.**
+
+        """
         spec = {}
         spec.update(self.validation_specs.get(None, {}))
         spec.update(self.validation_specs.get(ctx.resource.name, {}))
@@ -215,7 +403,7 @@ class Validator:
                 wrapped[field] = converted
 
         if conversion_errs:
-            raise BadRequest(conversion_errs)
+            raise ValidationFailed(conversion_errs, self)
         else:
             return wrapped.unwrap()
 
@@ -282,5 +470,43 @@ class _ContainerWrapper:
 class InvalidSpecificationError(ValueError):
     """Raised when an invalid specification is used."""
 
+class ValidationFailed(BadRequest):
+    """
+    Raised whenever a :class:`Validator` fails to validate one or more 
+    fields.
 
-__all__ = ['Validator', 'InvalidSpecificationError']
+    This exception is a subclass of :class:`BadRequest`, so if allowed
+    to bubble up, findig will send a ``400 BAD REQUEST``
+    response automatically.
+
+    Applications can, however, customize the way this exception is 
+    handled::
+
+        from werkzeug.wrappers import Response
+
+        # This assumes that the app was not supplied a custom error_handler
+        # function as an argument.
+        # If a custom error_handler function is being used, then
+        # do a test for this exception type inside the function body
+        # and replicate the logic
+        @app.error_handler.register(ValidationFailed)
+        def on_validation_failed(e):
+            # Construct a response based on the error received
+            msg = "Failed to convert input data for the following fields: "
+            msg += str(e.fields)
+            return Response(msg, status=e.status)
+            
+    """
+
+    def __init__(self, fields, validator):
+        super().__init__()
+
+        #: A list of field names for which validation has failed. This will
+        #: always be a complete list of failed fields.
+        self.fields = fields
+
+        #: The :class:`Validator` instance that raised the exception.
+        self.validator = validator
+
+
+__all__ = ['Validator', 'InvalidSpecificationError', 'ValidationFailed']
