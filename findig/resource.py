@@ -51,10 +51,11 @@ class AbstractResource(metaclass=abc.ABCMeta):
         Handle a request to one of the resource URLs.
 
         :param request: An object encapsulating information about the
-                        request. It is the same as :py:data:ctx.request
-        :type request: :class:`Request <findig.wrappers.Request>`, which
+                        request. It is the same as 
+                        :py:data:`findig.context.request`.
+        :type request: :class:`~findig.wrappers.Request`, which
                        in turn is a subclass of
-                       :py:class:werkzeug.wrappers.Request
+                       :py:class:`werkzeug.wrappers.Request`
         :param url_values: A dictionary of arguments that have been parsed
                            from the URL routes, which may help to better
                            identify the request. For example, if a resource
@@ -71,36 +72,43 @@ class AbstractResource(metaclass=abc.ABCMeta):
 
 
 class Resource(AbstractResource):
-    def __init__(self, **args):
-        """
-        Represents a web resource to be handled by Findig.
+    """
+    Resource(wrapped=None, lazy=None, name=None, model=None, formatter=None, parser=None, error_handler=None)
 
-        :keyword wrapped: A function which the resource wraps; it
-                          typically returns the data for that particular
-                          resource.
-        :keyword lazy: Indicates whether the wrapped resource function
-                       returns lazy resource data; i.e. data is not 
-                       retrieved when the function is called, but at some
-                       later point when the data is accessed. Setting this
-                       allows Findig to evaluate the function's return
-                       value after all resources have been declared to
-                       determine if it returns anything useful (for
-                       example, a :class:DataRecord which can be used as
-                       a model).
-        :keyword name: A name that uniquely identifies the resource.
-                       If not given, it will be randomly generated.
-        :keyword model: A data-model that describes how to read and write
-                        the resource's data. By default, a generic
-                        :class:`findig.data_model.DataModel` is attached.
-        :keyword formatter: A :class:`findig.content.AbstractFormatter` 
-                            instance that should be used to format the 
-                            resource's data. By default, a generic
-                            :class:`findig.content.Formatter` is attached.
-        :keyword parser: A :class:`findig.content.AbstractParser` instance
-                         that should be used to parse request content
-                         for the resource. By default, a generic
-                         :class:`findig.content.Parser` is attached.
-        """
+    A concrete implementation of :class:`AbstractResource`.
+
+    This accepts keyword arguments only.
+
+    :keyword wrapped: A function which the resource wraps; it
+                        typically returns the data for that particular
+                        resource.
+    :keyword lazy: Indicates whether the wrapped resource function
+                    returns lazy resource data; i.e. data is not 
+                    retrieved when the function is called, but at some
+                    later point when the data is accessed. Setting this
+                    allows Findig to evaluate the function's return
+                    value after all resources have been declared to
+                    determine if it returns anything useful (for
+                    example, a :class:DataRecord which can be used as
+                    a model).
+    :keyword name: A name that uniquely identifies the resource.
+                    If not given, it will be randomly generated.
+    :keyword model: A data-model that describes how to read and write
+                    the resource's data. By default, a generic
+                    :class:`findig.data_model.DataModel` is attached.
+    :keyword formatter: A function that should be used to format the 
+                        resource's data. By default, a generic
+                        :class:`findig.content.Formatter` is attached.
+    :keyword parser: A function
+                        that should be used to parse request content
+                        for the resource. By default, a generic
+                        :class:`findig.content.Parser` is attached.
+    :keyword error_handler: A function that should be used to convert
+        exception into :class:`Responses <werkzeug.wrappers.BaseResponse>`.
+        By default, a :class:`findig.content.ErrorHandler` is used.
+
+    """
+    def __init__(self, **args):        
         self.name = args.get('name', str(uuid.uuid4()))
         self.model = args.get('model', DataModel())
         self.lazy = args.get('lazy', False)
@@ -124,6 +132,8 @@ class Resource(AbstractResource):
 
     def compose_model(self, wrapper_args=None):
         """
+        :noindex:
+
         Make a composite model for the resource by combining a
         lazy data handler (if present) and the model specified on
         the resource.
@@ -135,6 +145,8 @@ class Resource(AbstractResource):
                              function. In this case, the data-model
                              returned *must not* be used.
         :returns: A data-model for the resource
+
+        **This is an internal method.**
         """
         if self.lazy:
             if wrapper_args is None:
@@ -183,16 +195,8 @@ class Resource(AbstractResource):
         """
         Dispatch a request to a resource.
         
-        See :py:meth:AbstractResource.handle_request for accepted
+        See :py:meth:`AbstractResource.handle_request` for accepted
         parameters.
-
-        :return: This depends on the request method:
-                 :GET: The resource's data, as retrieved from the 
-                       data model.
-                 :PUT: The resource's new data, as returned by the data
-                       model.
-                 :DELETE: Nothing.
-        :rtype: Don't depend on this.
         
         """
         method = request.method.upper()
@@ -226,11 +230,11 @@ class Resource(AbstractResource):
         
     def collection(self, wrapped=None, **args):
         """
-        Create a :class:Collection instance
+        Create a :class:`Collection` instance
 
         :param wrapped: A wrapped function for the collection. In most
-        cases, this should be a function that returns an iterable of
-        resource data.
+            cases, this should be a function that returns an iterable of
+            resource data.
 
         The keyword arguments are passed on to the constructor for
         :class:Collection, except that if no *name* is given, it defaults
@@ -238,12 +242,12 @@ class Resource(AbstractResource):
 
         This function may also be used as a decorator factory::
 
-            @resource.collection(bind=('id'))
+            @resource.collection(include_urls=True)
             def mycollection(self):
                 pass
 
         The decorated function will be replaced in its namespace by a 
-        :class:Collection that wraps it. Any keyword arguments
+        :class:`Collection` that wraps it. Any keyword arguments
         passed to the decorator factory will be handed over to the
         :class:Collection constructor. If no keyword arguments 
         are required, then ``@collection`` may be used instead of
@@ -264,6 +268,25 @@ class Resource(AbstractResource):
 
 
 class Collection(Resource):
+    """
+    Collection(of, include_urls=False, bindargs=None, **keywords)
+
+    A :class:`Resource` that acts as a collection of other resources.
+
+    :param of: The type of resource to be collected.
+    :type of: :class:`Resource`.
+    :param include_urls: If ``True``, the collection will attempt to
+        insert a ``url`` field on each of the child items that it returns. 
+        Note that this only works if the child already has enough information
+        in its fields to build a url (i.e., if the URL for the child
+        contains an ``:id`` fragment, then the child must have an id
+        field, which is then used to build its URL.
+    :param bindargs: A dictionary mapping field names to URL variables.
+        For example: a child resource may have the URL variable ``:id``,
+        but have a corresponding field named ``user_id``; the appropriate
+        value for *bindargs* in this case would be ``{'user_id': 'id'}``.
+
+    """
     def __init__(self, of, **args):
         super(Collection, self).__init__(**args)
         self.include_urls = args.pop('include_urls', False)
@@ -330,4 +353,4 @@ class Collection(Resource):
             return url
 
 
-__all__ = 'Resource', 'Collection'
+__all__ = ['AbstractResource', 'Resource', 'Collection']

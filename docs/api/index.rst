@@ -12,3 +12,5 @@ internally by Findig). They are documented in these pages:
     content
     context
     datamodel
+    dispatcher
+    resource

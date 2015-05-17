@@ -12,8 +12,30 @@ from findig.datapipe import DataPipe
 from findig.resource import Resource, AbstractResource
 
 class Dispatcher:
-    """A collector of routes and dispatcher of requests."""
+    """
+    A :class:`Dispatcher` creates resources and routes requests to them.
 
+    :param formatter: A function that converts resource data to a string
+        string suitable for output. It returns a 2-tuple: *(mime_type, output)*.
+        If not given, a generic :class:`findig.content.Formatter` is used.
+    :param parser: A function that parses request input and returns a
+        2-tuple: *(mime_type, data)*. If not given, a generic
+        :class:`findig.content.Parser`.
+    :param error_handler: A function that converts an exception to a 
+        :class:`Response <werkzeug.wrappers.BaseResponse>`. If not given,
+        a generic :class:`findig.content.ErrorHandler` is used.
+    :param pre_processor: A function that is called on request data just
+        after is is parsed.
+    :param post_processor: A function that is called on resource data
+        just before it is formatted.
+
+    This class is fairly low-level and shouldn't be instantiated directly in
+    application code. It does however serve as a base for :class:`findig.App`.
+
+    """
+
+    #: A class that is used to construct responses after they're
+    #: returned from formatters.
     response_class = Response
 
     def __init__(self, formatter=None, parser=None, error_handler=None,
@@ -70,7 +92,7 @@ class Dispatcher:
                         dictionary with the resource's data.
                
         The keyword arguments are passed on directly to the constructor
-        for :class:Resource, with the exception that *name* will default to 
+        for :class:`Resource`, with the exception that *name* will default to 
         {module}.{name} of the wrapped function if not given.
 
         This method may also be used as a decorator factory::
@@ -80,9 +102,9 @@ class Dispatcher:
                 return {'id': 10, ... }
 
         In this case the decorated function will be replaced by a
-        :class:Resource instance that wraps it. Any keyword arguments
+        :class:`Resource` instance that wraps it. Any keyword arguments
         passed to the decorator factory will be handed over to the
-        :class:Resource constructor. If no keyword arguments 
+        :class:`Resource` constructor. If no keyword arguments 
         are required, then ``@resource`` may be used instead of
         ``@resource()``.
 
@@ -112,7 +134,7 @@ class Dispatcher:
         incoming requests to it.
 
         :param resource: The resource that the route will be created for.
-        :type resource: :class:Resource or function
+        :type resource: :class:`Resource` or function
         :param rulestr: A URL rule, according to
                         :ref:`werkzeug's specification <werkzeug:routing>`.
         :type rulestr: str
@@ -136,7 +158,7 @@ class Dispatcher:
         return resource
 
     def route_decorator(self, rulestr, **ruleargs):
-        """See :meth:route."""
+        #See :meth:`route`.
         def decorator(resource):
             # Collect the rule
             resource = self.route(resource, rulestr, **ruleargs)
@@ -149,12 +171,9 @@ class Dispatcher:
     def build_rules(self):
         """
         Return a generator for all of the url rules collected by the
-        :class:Dispatcher.
+        :class:`Dispatcher`.
 
-        :param warn_routes: If True, the function will emit a warning
-                            about resources that have no routes assigned
-                            to them.
-        :rtype: Iterable of :class:werkzeug.routing.Rule
+        :rtype: Iterable of :class:`werkzeug.routing.Rule`
 
         .. note:: This method will 'freeze' resource names; do not change
                   resource names after this function is invoked.
@@ -196,8 +215,10 @@ class Dispatcher:
 
     def dispatch(self):
         """
-        Dispatch a request to the appropriate resource, based on
+        Dispatch the current request to the appropriate resource, based on
         which resource the rule applies to.
+
+        This function requires an active request context in order to work.
         """
         # TODO: document request context variables.
         request = ctx.request
