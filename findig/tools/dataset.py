@@ -70,7 +70,7 @@ class AbstractDataSet(Iterable, metaclass=ABCMeta):
         present on the record), otherwise it is compared against the field
         for equality.
         """
-        return FilteredDataSet(self, **filter_spec)
+        return FilteredDataSet(self, **search_spec)
 
     def limit(self, count, offset=0):
         """
