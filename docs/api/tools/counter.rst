@@ -1,5 +1,5 @@
-:mod:`findig.tools.counter`: Hit counters for apps and resources
-================================================================
+:mod:`findig.tools.counter` --- Hit counters for apps and resources
+===================================================================
 
 .. automodule:: findig.tools.counter
     
