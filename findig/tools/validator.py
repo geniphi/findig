@@ -178,6 +178,12 @@ class Validator:
             # and any float <1000
             validator.enforce(resource, duration='float(max=1000)')
 
+        .. important:: Converter specifications in this form **cannot**
+           match strings that contain forward slashes. For example,
+           *'string(length=2)'* will fail to match *'/e'* and 
+           *'any(application/json,html)'* will fail to
+           match *'application/json'*.
+
     *   or, :class:`list` -- This must be a singleton list containing a
         converter. When this is given, the validator will treat the field
         like a list and use the converter to convert each item.
@@ -317,7 +323,8 @@ class Validator:
                     return None
 
                 ccls = app.url_map.converters[cname]
-                converter = ccls(app.url_map, *args, **kwargs)
+                converter = ccls(app.url_map, *args, **kwargs)                   
+
                 compiled_re = re.compile(converter.regex)
                 return compiled_re, converter
             elif isinstance(item_spec, list):
