@@ -1,5 +1,3 @@
-
-
 class extremum:
     """
     A class whose instances are always ordered at one extreme.
@@ -30,6 +28,15 @@ class extremum:
             return not self.gt
 
 def tryeach(funcs, *args, **kwargs):
+    """
+    Call every item in a list a functions with the same arguments,
+    until one of them does not throw an error. If all of the functions
+    raise an error, then the error from the last function will be
+    re-raised.
+
+    :param funcs: An iterable of callables.
+
+    """
     # Call every item in the list with the arguments given until
     # one of them /does not/ raise an error. If all of the items
     # raise an error, the very last error raised will re re-raised.

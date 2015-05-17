@@ -137,9 +137,20 @@ class RedisObj(MutableRecord):
             
 class RedisSet(MutableDataSet):
     """
-    A RedisSet is an :class:AbstractDataSet that stores its items in
+    RedisSet(key=None, client=None, index_size=4)
+
+    A RedisSet is an :class:`AbstractDataSet` that stores its items in
     a Redis database (using a Sorted Set to represent the collection,
     and a sorted set to represent items).
+
+    :param key: The base key that should be used for the sorted set. If
+        not given, one is deterministically generated based on the current
+        resource.
+    :param client: A :class:`redis.StrictRedis` instance that should be
+        used to communicate with the redis server. If not given, a default
+        instance is used.
+    :param index_size: The number of bytes to use to index items in the
+        set (per item).
     """
 
     def __init__(self, key=None, client=None, **args):
@@ -205,7 +216,6 @@ class RedisSet(MutableDataSet):
                 yield RedisObj(itemkey, self, self.include_ids)
 
     def add(self, data):
-        """Add the record to the set."""
         id = str(data['id'] if 'id' in data else self.genid(data))
         itemkey = self.itemkey.format(id=id)
 
@@ -217,7 +227,6 @@ class RedisSet(MutableDataSet):
         return tokens[0]
 
     def fetch_now(self, **spec):
-        """Get an item matching the search spec."""
         if list(spec) == ['id']:
             # Fetching by ID only; just lookup the item according to its
             # key

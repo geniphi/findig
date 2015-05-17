@@ -274,7 +274,7 @@ class Collection(Resource):
     A :class:`Resource` that acts as a collection of other resources.
 
     :param of: The type of resource to be collected.
-    :type of: :class:`Resource`.
+    :type of: :class:`Resource`
     :param include_urls: If ``True``, the collection will attempt to
         insert a ``url`` field on each of the child items that it returns. 
         Note that this only works if the child already has enough information

@@ -11,7 +11,12 @@ from findig.utils import extremum
 
 class AbstractDataSet(Iterable, metaclass=ABCMeta):
     """
-    An abstract data set is a collection
+    An abstract data set is a representation of a collection of items.
+
+    Concrete implementations must provide *at least* an implementation
+    for ``__iter__``, which should return an iterator of
+    :class:`AbstractRecord` instances.
+
     """
 
     def __str__(self):
@@ -20,6 +25,13 @@ class AbstractDataSet(Iterable, metaclass=ABCMeta):
         )
 
     def fetch(self, **search_spec):
+        """
+        Fetch an :class:`AbstractRecord` matching the search specification.
+
+        If this is called outside a request, a lazy record is returned
+        immediately (i.e., the backend isn't hit until the record is
+        explicitly queried).
+        """
         if hasattr(ctx, 'request') and ctx.request.method.lower() in ('get', 'head'):
             # We're inside a GET request, so we can immediately grab a
             # record and return it
@@ -35,17 +47,28 @@ class AbstractDataSet(Iterable, metaclass=ABCMeta):
             return cls(lambda: self.fetch_now(**search_spec))
 
     def fetch_now(self, **search_spec):
+        """
+        Fetch an :class:`AbstractRecord` matching the search specification.
+
+        Unlike :meth:`fetch`, this function will always hit the backend.
+        """
         for record in self:
             if FilteredDataSet.check_match(record, search_spec):
                 return record
         else:
             raise LookupError("No matching item found.")
 
-    def filtered(self, **filter_spec):
+    def filtered(self, **search_spec):
         """
         Return a filtered view of this data set.
 
-        See the documentation for :class:`FilteredDataSet`.
+        Each keyword represents the name of a field that is checked, and
+        the corresponding argument indicates what it is checked against. If
+        the argument is :class:`~collections.abc.Callable`, then it should
+        be a predicate that returns ``True`` if the field is valid (be aware
+        that the predicate will passed be ``None`` if the field isn't 
+        present on the record), otherwise it is compared against the field
+        for equality.
         """
         return FilteredDataSet(self, **filter_spec)
 
@@ -71,20 +94,24 @@ class AbstractDataSet(Iterable, metaclass=ABCMeta):
 
         Otherwise, the arguments are taken as field names to be sorted,
         in the same order given in the argument list. Records that omit
-        on of these fields always appear later in the sorted set than 
+        one of these fields appear later in the sorted set than 
         those that don't.
         
         """
         return OrderedDataSet(self, *sort_spec, descending=descending)
 
 class MutableDataSet(AbstractDataSet, metaclass=ABCMeta):
+    """
+    An abstract data set that can add new child elements.
+    """
+
     @abstractmethod
     def add(self, data):
-        """Add the data to the data set."""
+        """Add a new child item to the data set."""
 
 class AbstractRecord(Mapping, metaclass=ABCMeta):
     """
-    An abstract record
+    An representation of an item belonging to a collection.
     """
     def __iter__(self):
         yield from self.cached_data
@@ -113,6 +140,9 @@ class AbstractRecord(Mapping, metaclass=ABCMeta):
         """
 
 class MutableRecord(MutableMapping, AbstractRecord, metaclass=ABCMeta):
+    """
+    An abstract record that can update or delete itself.
+    """
     def __setitem__(self, field, val):
         self.patch({field: val})
 
@@ -125,10 +155,24 @@ class MutableRecord(MutableMapping, AbstractRecord, metaclass=ABCMeta):
         else:
             self.__dict__['cached_data'] = new_data
 
+    @abstractmethod
     def start_edit_block(self):
+        """
+        Start a transaction to the backend.
+
+        Backend edits made through this object should be grouped together
+        until :meth:`close_edit_block` is called.
+
+        :return: A token that is passed into :meth:`close_edit_block`.
+        
+        """
         raise NotImplementedError
 
+    @abstractmethod
     def close_edit_block(self, token):
+        """
+        End a transaction started by :meth:`start_edit_block`.
+        """
         raise NotImplementedError
 
     def update(self, E=None, **add_data):

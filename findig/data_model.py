@@ -102,7 +102,7 @@ class DictDataModel(dict, AbstractDataModel):
 
 class DataModel(AbstractDataModel, MutableMapping):
     """
-    A generic, concrete implementation of :class:AbstractDataModel
+    A generic, concrete implementation of :class:`AbstractDataModel`
 
     This class is implemented as a mutable mapping, so implementation
     functions for data operations can be set, accessed and deleted

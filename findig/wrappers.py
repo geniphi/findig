@@ -8,11 +8,18 @@ from findig.utils import tryeach
 
 
 class Request(Request_):
-    # 10MB max content length
+    """A default request class for wrapping WSGI environs."""
+    
+    #: The maximum allowed content-length for the requests is set to
+    #: 10MB by default.
     max_content_length = 1024 * 1024 * 10
 
     @cached_property
     def input(self):
+        """
+        Request content that has been parsed into a python object.
+        This is a read-only property.
+        """
         parsed = tryeach(
             [
                 getattr(ctx.resource, 'parser', Parser()),

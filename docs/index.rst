@@ -59,3 +59,5 @@ This section isn't ready yet. Please check back later.
 
    api/index
    api/tools/index
+   api/extras
+   api/utils

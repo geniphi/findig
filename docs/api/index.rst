@@ -14,3 +14,4 @@ internally by Findig). They are documented in these pages:
     datamodel
     dispatcher
     resource
+    wrappers
