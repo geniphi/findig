@@ -63,7 +63,7 @@ from werkzeug.exceptions import BadRequest
 from werkzeug.routing import parse_converter_args, BaseConverter
 
 from findig.context import ctx
-from findig.datapipe import DataPipe
+from findig.utils import DataPipe
 
 
 _converter_re = re.compile(r'''

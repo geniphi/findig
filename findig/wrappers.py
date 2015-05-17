@@ -3,8 +3,7 @@ from werkzeug.wrappers import Request as Request_
 
 from findig.content import Parser
 from findig.context import ctx
-from findig.datapipe import DataPipe
-from findig.utils import tryeach
+from findig.utils import DataPipe, tryeach
 
 
 class Request(Request_):

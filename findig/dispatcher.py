@@ -8,8 +8,8 @@ from werkzeug.wrappers import Response, BaseResponse
 
 from findig.content import ErrorHandler, Formatter, Parser
 from findig.context import ctx
-from findig.datapipe import DataPipe
 from findig.resource import Resource, AbstractResource
+from findig.utils import DataPipe
 
 class Dispatcher:
     """
