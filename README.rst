@@ -15,8 +15,8 @@ Features
 --------
 
 - Easy, declarative support for RESTful API development.
-- Fully customizable input and output types.
-- High level utilities such as resource watchers and caches.
+- Fully customizable input and output content-types.
+- High level utilitiess.
 
 Installing
 ----------
