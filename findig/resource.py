@@ -70,6 +70,42 @@ class AbstractResource(metaclass=abc.ABCMeta):
                  resource will accept.
         """
 
+    def build_url(self, values, **args):
+        """
+        build_url(values)
+
+        Build a URL for this resource.
+
+        The URL is built using the current WSGI environ, so this function
+        must be called from inside a request context. Furthermore, the
+        resource must have already been routed to in the current app
+        (see: :meth:`findig.dispatcher.Dispatcher.route`), and this method
+        must be passed values for any variables in the URL rule used to
+        route to the resource.
+
+        :param values: Values for the variables in a URL rule used to
+            route to the resource.
+        :type values: :class:`dict`
+
+        Example::
+
+            >>> from findig import App
+            >>> app = App()
+            >>> @app.route("/index/<int:num>")
+            ... @app.resource
+            ... def item(num):
+            ...     return {}
+            ...
+            >>> with app.test_context(path="/index/1"):
+            ...     item.build_url(dict(num=4))
+            ...
+            '/index/4'
+
+        This method is *not* abstract.
+
+        """
+        return url_adapter.build(self.name, values, **args)
+
 
 class Resource(AbstractResource):
     """
