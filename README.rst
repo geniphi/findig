@@ -24,6 +24,8 @@ install the development version, run:
 .. code-block:: bash
 
     $ pip install git+https://github.com/geniphi/findig.git#egg=Findig
+    
+Findig is written in Python3 and is supported on Python 3.4.
 
 Contribute
 ----------
