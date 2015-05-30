@@ -349,10 +349,14 @@ class Collection(Resource):
     def handle_request(self, request, wrapper_args):
         ret = super().handle_request(request, wrapper_args)
 
-        if request.method.lower() == 'post':
+        method = request.method.upper()
+
+        # After the request has been handled, these branches may modify
+        # the output
+        if method == 'POST':
             ctx.response.setdefault('status', 201)
 
-            url = self._try_build_item_url(data)
+            url = self._try_build_item_url(ret)
             if url is not None:
                 ctx.response['headers'].setdefault('Location', url)
 
