@@ -8,13 +8,10 @@ alternative to Flask_ when implementing RESTful APIs.
 .. _werkzeug: http://werkzeug.pocoo.org
 .. _flask: http://flask.pocoo.org
 
-Using Findig is pretty easy. Take a look at the examples/ directory
-for some usage examples to get you started.
-
 Features
 --------
 
-- Easy, declarative support for RESTful API development.
+- Declarative support for RESTful API development.
 - Fully customizable input and output content-types.
 - High level utilities.
 
@@ -27,6 +24,8 @@ install the development version, run:
 .. code-block:: bash
 
     $ pip install git+https://github.com/geniphi/findig.git#egg=Findig
+    
+Findig is written in Python3 and is supported on Python 3.4.
 
 Contribute
 ----------
