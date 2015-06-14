@@ -188,7 +188,7 @@ class DataSetDataModel(AbstractDataModel):
         if action == 'read':
             return lambda: self.ds
         elif action == 'make':
-            return self.ds.add
+            return lambda data: self.ds.add(data)
         elif action == 'write':
             return lambda data: self.ds.patch(data, (), replace=True)
         elif action == 'delete':

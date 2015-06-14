@@ -155,7 +155,6 @@ class MutableRecord(MutableMapping, AbstractRecord, metaclass=ABCMeta):
         else:
             self.__dict__['cached_data'] = new_data
 
-    @abstractmethod
     def start_edit_block(self):
         """
         Start a transaction to the backend.
@@ -168,7 +167,6 @@ class MutableRecord(MutableMapping, AbstractRecord, metaclass=ABCMeta):
         """
         raise NotImplementedError
 
-    @abstractmethod
     def close_edit_block(self, token):
         """
         End a transaction started by :meth:`start_edit_block`.

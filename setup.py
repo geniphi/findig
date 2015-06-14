@@ -45,6 +45,7 @@ setup(
     install_requires=['werkzeug'],
     extras_require={
         'redis': ['redis'],
+        'sql': ['sqlalchemy'],
     },
 
 )
