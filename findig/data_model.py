@@ -192,7 +192,7 @@ class DataSetDataModel(AbstractDataModel):
         elif action == 'write':
             return lambda data: self.ds.patch(data, (), replace=True)
         elif action == 'delete':
-            return self.ds.delete
+            return lambda: self.ds.delete()
 
 
 __all__ = ['AbstractDataModel', 'DictDataModel', 'DataModel', 'DataSetDataModel']
