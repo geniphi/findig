@@ -222,6 +222,49 @@ class Validator:
         app.pre_processor = DataPipe(app.pre_processor, self.validate)
         app.startup_hook(partial(self.__prepare_converters, app))
 
+    @staticmethod
+    def regex(pattern, flags=0, template=None):
+        """
+        Create a function that validates strings against a regular expression.
+
+        ::
+
+            >>> func = Validator.regex("boy")
+            >>> func("boy")
+            'boy'
+            >>> func("That boy")
+            Traceback (most recent call last):
+              ...
+            ValueError: That boy
+            >>> func("boy, that's handy.")
+            Traceback (most recent call last):
+              ...
+            ValueError: boy, that's handy.
+
+        If you supply a template, it is used to construct a return 
+        value by doing backslash substitution::
+
+            >>> func = Validator.regex("(male|female)", template=r"Gender: \1")
+            >>> func("male")
+            'Gender: male'
+            >>> func("alien")
+            Traceback (most recent call last):
+              ...
+            ValueError: alien
+            
+        """
+
+        regexp = re.compile(pattern, flags)
+        def match_string(s):
+            m = regexp.fullmatch(s)
+            if m is None:
+                raise ValueError(s)
+            elif template is not None:
+                return m.expand(template)
+            else:
+                return m.string
+        return match_string
+
     def enforce(self, *args, **validator_spec):
         """
         enforce(resource, **validation_spec)
