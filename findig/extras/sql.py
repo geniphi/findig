@@ -91,6 +91,11 @@ class SQLASet(MutableDataSet):
     class InvalidField(BadRequest):
         pass
 
+    class CommitError(BadRequest):
+        def __init__(self, e):
+            self.inner = e
+            super().__init__(e)
+
     def __init__(self, orm_cls):
         self._cls = orm_cls
         self._modifiers = []
@@ -119,8 +124,13 @@ class SQLASet(MutableDataSet):
             obj = self._cls(**data)
         except TypeError:
             raise self.InvalidField
+
         ctx.sqla_session.add(obj)
-        ctx.sqla_session.commit()
+
+        try:
+            ctx.sqla_session.commit()
+        except Exception as e:
+            raise self.CommitError(e)
         
         key = obj.__table__.primary_key
         return {c.name:getattr(obj, c.name) for c in key}
