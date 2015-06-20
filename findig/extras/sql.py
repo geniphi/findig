@@ -8,6 +8,7 @@ from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.expression import desc
 from werkzeug.datastructures import MultiDict
+from werkzeug.exceptions import BadRequest
 
 from findig.context import ctx
 from findig.tools.dataset import MutableDataSet, MutableRecord, FilteredDataSet
@@ -87,6 +88,9 @@ class SQLA:
 
 
 class SQLASet(MutableDataSet):
+    class InvalidField(BadRequest):
+        pass
+
     def __init__(self, orm_cls):
         self._cls = orm_cls
         self._modifiers = []
@@ -111,7 +115,10 @@ class SQLASet(MutableDataSet):
 
     def add(self, data):
         data = data.to_dict() if isinstance(data, MultiDict) else data
-        obj = self._cls(**data)
+        try:
+            obj = self._cls(**data)
+        except TypeError:
+            raise self.InvalidField
         ctx.sqla_session.add(obj)
         ctx.sqla_session.commit()
         
@@ -166,13 +173,16 @@ class _SQLRecord(MutableRecord):
         return d
 
     def patch(self, add_data, remove_fields):
-        for field in remove_fields:
-            setattr(self._obj, field, None)
+        try:
+            for field in remove_fields:
+                setattr(self._obj, field, None)
         
-        for k, v in add_data.items():
-            setattr(self._obj, k, v)
+            for k, v in add_data.items():
+                setattr(self._obj, k, v)
 
-        ctx.sqla_session.commit()
+            ctx.sqla_session.commit()
+        except AttributeError:
+            raise SQLASet.InvalidField
 
     def delete(self):
         ctx.sqla_session.delete(self._obj)
