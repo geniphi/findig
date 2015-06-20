@@ -94,7 +94,7 @@ class SQLASet(MutableDataSet):
     class CommitError(BadRequest):
         def __init__(self, e):
             self.inner = e
-            super().__init__(e)
+            super().__init__()
 
     def __init__(self, orm_cls):
         self._cls = orm_cls
