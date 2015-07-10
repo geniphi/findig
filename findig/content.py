@@ -1,4 +1,4 @@
-"""
+﻿"""
 These are helper implementations of content-handling 'functions' for
 parsing, formatting and error-handling. The module exposes 
 :class:`Parser`, :class:`Formatter` and :class:`ErrorHandler` respectively,
