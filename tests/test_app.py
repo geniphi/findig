@@ -1,4 +1,4 @@
-from tempfile import NamedTemporaryFile
+﻿from tempfile import NamedTemporaryFile
 from os.path import isfile
 
 import pytest
@@ -33,6 +33,41 @@ def environ():
     return builder.get_environ()
 
 
+def test_context_error(app, environ):
+    @app.context
+    def error_func():
+        raise ValueError
+        yield
+
+    with pytest.raises(ValueError):
+        with app.build_context(environ):
+            print()
+
+def test_context_error_propagates(app, environ):
+    # The Protector relies on any errors being raised by a request 
+    # context manager being propagated all the way to the application
+    # error handler. Should these test cases fail, then the Protector
+    # will fail to do its job.
+    class CustomErrorClass(Exception):
+        pass
+
+    err = CustomErrorClass()
+    tracked = []
+
+    @app.context
+    def error_func():
+        raise err
+        yield
+
+    @app.error_handler.register(CustomErrorClass)
+    def track_error(e):
+        tracked.append(e)
+        return BaseResponse("Foo")
+
+    client = Client(app)
+    client.open(environ)
+
+    assert tracked == [err]
 
 def test_app_context_management(app, environ):
     @app.context
