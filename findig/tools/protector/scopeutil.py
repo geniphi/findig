@@ -5,7 +5,8 @@ These are utility functions that help to implement scopes on a protected API.
 import re
 
 
-ANY = {"*+crud"}
+#: A special scope item that implicitly encapsulates all other scope items
+ANY = {"$^&#THISISGARBAGE#*@&@#$*@$&DFDF#&#@&@&##*&@DHJGDJH#@&*^@#*+crud"}
 
 def normalize_scope_items(scopes, default_mode="r", raise_err=True):
     """
@@ -62,13 +63,21 @@ def check_encapsulates(root, child, sep="/"):
     'user/friends+r' and so on.
     """
 
+    if root == ANY:
+        return True
+
     root_fragment, root_permissions = root.split("+")
     child_fragment, child_permissions = child.split("+")
 
-    root_fragment = root_fragment[:-1] if root_fragment.endswith(sep) else root_fragment
-    # Use a regular expression to verify that the child fragment is indeed a sub
-    # scope of the root fragment. It checks
-    rep = re.compile("^({0})$|({0})/".format(re.escape(root_fragment)), re.U)
+    if sep is None:
+        # In this case, disable checking for branched scope items, but enable
+        # checking for scope items with a subset of the permissions.
+        rep = re.compile("^{0}$".format(re.escape(root_fragment)), re.U)
+    else:
+        root_fragment = root_fragment[:-1] if root_fragment.endswith(sep) else root_fragment
+        # Use a regular expression to verify that the child fragment is indeed a sub
+        # scope of the root fragment. It checks
+        rep = re.compile("^({0})$|({0})/".format(re.escape(root_fragment)), re.U)
 
     root_permissions = set(root_permissions)
     child_permissions = set(child_permissions)
@@ -81,6 +90,13 @@ def check_encapsulates(root, child, sep="/"):
 
     else:
         return True
+
+def find_encapsulating_scope(scope, scopes, sep="/"):
+    for scp in scopes:
+        if check_encapsulates(scp, scopes, "/"):
+            return scp
+    else:
+        return None
 
 def compress_scope_items(scopes, default_mode="r"):
     """
