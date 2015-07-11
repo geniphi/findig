@@ -16,5 +16,6 @@ following pages:
     :maxdepth: 2
 
     counter
+    protector
     validator
     abstract

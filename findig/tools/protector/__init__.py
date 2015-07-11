@@ -1,4 +1,4 @@
-﻿from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod
 from collections.abc import Callable
 from functools import partial
 
@@ -65,12 +65,22 @@ class DefaultGateKeeper(GateKeeper):
 
 class Protector:
     """
+    Protector(app=None, subscope_separator="/", gatekeeper=None)
+
     A protector is responsible for guarding access to a restricted
-    resource.
+    resource::
 
-    >>> protector = Protector()
-    >>> protector.guard(resource, "user", "friend")
+        from Findig import App
 
+        app = App()
+        protector = Protector(app)
+        protector.guard(resource)
+
+    :param app: A findig application instance.
+    :param subscope_separator: A separator used to denote sub-scopes.
+    :param gatekeeper: A concrete implementation of :class:`GateKeeper`. If
+        not provided, the protector will deny all requests to its guarded
+        resources.
     """
 
     _default_permissions = {"get": "r", "post": "c", "patch": "cu", "delete": "d", "head": "r"}
@@ -104,17 +114,19 @@ class Protector:
 
     def guard(self, *args):
         """
-        guard(resource, *scopes)
+        guard(resource[, scope[, scope [, ...]]])
 
-        Guard a resource against unauthorized access. If given, the scopes
+        Guard a resource against unauthorized access. If given, the 
+        :token:`scopes <resource_scope>`
         will be used to protect the resource (similar to oauth) such that
-        only requests with the appropriate scope will be allowed through.
+        only requests with the appropriate :token:`scope <auth_scope>` 
+        will be allowed through.
 
         If this function is called more than once, then a grant by *any*
         of the specifications will allow the request to access the resource.
         For example::
 
-            # This protector will allow requests to res with both 
+            # This protector will allow requests to res with BOTH 
             # "user" and "friends" scope, but it will also allow 
             # requests with only "foo" scope.
             protector.guard(res, "user", "friends")
@@ -123,22 +135,27 @@ class Protector:
         A protector can also be used to decorate resources for guarding::
 
             @protector.guard
-            @app.route("/foo"):
+            @app.route("/foo")
+            def foo():
                 # This resource is guarded with no scopes; any authenticated
                 # request will be allowed through.
                 pass
 
             @protector.guard("user/email_addresses")
-            @app.route("/bar"):
+            @app.route("/bar")
+            def bar():
                 # This resource is guarded with "user/email_addresses" scope,
                 # so that only requests authorized with that scope will be
                 # allowed to access the resource.
+                pass
 
             @protector.guard("user/phone_numbers", "user/contact")
-            @app.route("/baz"):
+            @app.route("/baz")
+            def baz():
                 # This resource is guarded with both "user/phone_numbers" and
                 # "user/contact" scope, so requests must be authorized with both
                 # to access this resource.
+                pass
 
             # NOTE: Depending on the value passed for 'subscope_separator' to the
             # protector's constructor, authenticated requests authorized with "user" scope
@@ -237,6 +254,22 @@ class BasicProtector(GateKeeper, Protector):
         self._realm = realm
 
     def auth_func(self, fauth):
+        """Supply an application-defined function that performs authentication.
+
+        The function has the following signature:
+
+        .. function fauth(username:str, password:str)
+            Return whether or not the credentials given authenticate 
+            successfully.
+
+        auth_func is usable as a decorator::
+
+            @protector.auth_func
+            def check_credentials(usn, pwd):
+                user = db.get_obj(usn)
+                return user.password == pwd
+
+        """
         self._fauth = fauth
         return fauth
 
