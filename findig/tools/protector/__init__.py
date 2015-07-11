@@ -1,4 +1,4 @@
-from abc import ABCMeta, abstractmethod
+﻿from abc import ABCMeta, abstractmethod
 from collections.abc import Callable
 from functools import partial
 
@@ -162,6 +162,7 @@ class Protector:
 
     def auth(self):
         resource = ctx.resource
+        request = ctx.request
         auth_info = {}
 
         # Check if the request is guarded
