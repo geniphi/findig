@@ -1,5 +1,5 @@
 """
-These are utility functions that help to implement scopes on a protected API.
+These functions are used protectors to implement :ref:`scoping <auth-scopes>`.
 """
 
 import re
@@ -13,25 +13,27 @@ def normalize_scope_items(scopes, default_mode="r", raise_err=True):
     Return a set of scope items that have been normalized.
 
     A normalized set of scope items is one where every item
-    is in the format::
+    is in the format:
 
-        item_name+permission
+    .. productionlist:: normalized_scope
+        norm_scope : `scope_name`+`permission`
 
-    where permission can be any one of 'c', 'r', 'u' or 'd'.
 
     Input scope items are assumed to be 'r' by default. Example,
-    the scope item 'user' will normalize to 'user+r'.
+    the scope item ``user`` will normalize to ``user+r``.
 
     Input scope items that contain more than one permission are
     expanded to multiple scope items. For example the scope item
-    "user+ud" is expanded to ("user+u", "user+d").
-
-    Malformed scope items are dropped. For example, the scope item
-    "user+r+u" is removed.
+    ``user+ud`` is expanded to (``user+u``, ``user+d``).
 
     Note that permissions are atomic, and none implies another.
-    For example, "user+u" will expand to "user+u" and NOT
-    ("user+r", "user+u").
+    For example, ``user+u`` will expand to ``user+u`` and NOT
+    (``user+r``, ``user+u``).
+
+    :param scopes: A list of :ref:`scope items <auth-scopes>`.
+    :param default_mode: The permission that should be assumed if one is omitted.
+    :param raise_err: If ``True``, malformed scopes will raise a :class:`ValueError`. Otherwise
+        they are omitted.
     """
 
     normalized = set()
@@ -52,15 +54,23 @@ def normalize_scope_items(scopes, default_mode="r", raise_err=True):
 
 def check_encapsulates(root, child, sep="/"):
     """
-    Check that one scope item is a sub-item of another.
+    Check that one scope item encapsulates of another.
+
+    A :token:`scope <auth-scopes>` item encapsulates when it is a super-scope 
+    of the other, and when its permissions are a superset of the other's
+    permissions. 
 
     This is used to implement sub-scopes, where permissions granted on
     a broad scope can be used to imply permissions for a sub-scope. By default,
     sub-scopes are denoted by a preceeding '/'.
 
-    For example, a scope permission if 'user+r' is granted to an agent, then
-    that agent is also implied to have been granted 'user/emails+r', 
-    'user/friends+r' and so on.
+    For example, a scope permission if ``user+r`` is granted to an agent, then
+    that agent is also implied to have been granted ``user/emails+r``, 
+    ``user/friends+r`` and so on.
+
+    :param root: A super-scope
+    :param child: A potential sub-scope
+    :param sep: The separator that is used to denote sub-scopes.
     """
 
     if root == ANY:

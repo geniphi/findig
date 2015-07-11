@@ -17,5 +17,6 @@ following pages:
 
     counter
     protector
+    scopeutil
     validator
     abstract
