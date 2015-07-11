@@ -224,7 +224,7 @@ class Validator:
 
     @staticmethod
     def regex(pattern, flags=0, template=None):
-        """
+        r"""
         Create a function that validates strings against a regular expression.
 
         ::
