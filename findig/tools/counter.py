@@ -1,4 +1,4 @@
-﻿"""
+"""
 The :mod:`findig.tools.counter` module defines the :class:`Counter` tool,
 which can be used as a hit counter for your application. Counters can
 count hits to a particular resource, or globally within the application.
@@ -477,6 +477,4 @@ class _HitLog(AbstractLog):
 
     def __repr__(self):
         return "HitLog({})".format(self.count())
-
-Hit = namedtuple("Hit", "time parts")
 
