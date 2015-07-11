@@ -1,4 +1,4 @@
-"""
+﻿"""
 The :mod:`findig.tools.counter` module defines the :class:`Counter` tool,
 which can be used as a hit counter for your application. Counters can
 count hits to a particular resource, or globally within the application.
@@ -13,6 +13,7 @@ from functools import partial, reduce, total_ordering
 from numbers import Integral
 from threading import Lock
 import heapq
+import pickle
 
 from werkzeug.utils import validate_arguments
 
@@ -417,8 +418,8 @@ class _HitLog(AbstractLog):
         now = datetime.now()
         with self._thread_lock:
             while self._hits and (now - self._hits[0][0]) > self._delta:
-                time, counter_keys = heapq.heappop(self._hits)
-                self._counter.subtract(counter_keys)
+                time, pickled_counter_keys = heapq.heappop(self._hits)
+                self._counter.subtract(pickle.loads(pickled_counter_keys))
 
     def _generate_counter_keys(self, partitions):
         sub_keys = chain.from_iterable(
@@ -434,7 +435,7 @@ class _HitLog(AbstractLog):
 
         with self._thread_lock:
             counter_keys = tuple(self._generate_counter_keys(partitions))
-            heapq.heappush(self._hits, (now, counter_keys))
+            heapq.heappush(self._hits, (now, pickle.dumps(counter_keys)))
             self._counter.update(counter_keys)
 
     def count(self, **partitions):
