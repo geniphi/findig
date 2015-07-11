@@ -1,4 +1,4 @@
-import pytest
+﻿import pytest
 
 from findig import App
 from findig.content import *
@@ -68,7 +68,6 @@ def test_correct_formatter_is_selected(app, accept, formatter_args, expected):
 
     format = Formatter.compose(*formatters) \
              if len(formatters) > 1 else formatters[0]
-    print (format.handlers)
 
     with app.build_context(builder.get_environ()):
         if isinstance(expected, type) and issubclass(expected, Exception):
