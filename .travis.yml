@@ -1,0 +1,9 @@
+language: python
+python:
+    - "3.4"
+install: 
+    - "pip install -r requirements.txt --use-mirrors"
+    - "pip install redis sqlalchemy --use-mirrors"
+    - "pip install tox"
+script: 
+    - "tox"
