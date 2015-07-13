@@ -1,6 +1,8 @@
 Findig
 ======
 
+|docs|
+
 Findig is a micro-framework for building HTTP applications. It is based
 on the excellent Werkzeug_ WSGI utility library, and is meant as an
 alternative to Flask_ when implementing RESTful APIs.
@@ -49,3 +51,8 @@ Documentation
 
 This project is documented at 
 `findig@readthedocs <http://findig.rtfd.org/>`_.
+
+.. |docs| image:: https://readthedocs.org/projects/findig/badge/?version=latest
+    :alt: Documentation Status
+    :scale: 100%
+    :target: https://readthedocs.org/projects/findig/
