@@ -1,7 +1,7 @@
 Findig
 ======
 
-|build status| |docs|
+|build-status| |docs|
 
 Findig is a micro-framework for building HTTP applications. It is based
 on the excellent Werkzeug_ WSGI utility library, and is meant as an
