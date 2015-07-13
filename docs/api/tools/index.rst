@@ -16,5 +16,7 @@ following pages:
     :maxdepth: 2
 
     counter
+    protector
+    scopeutil
     validator
     abstract
