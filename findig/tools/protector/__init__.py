@@ -70,7 +70,7 @@ class Protector:
     A protector is responsible for guarding access to a restricted
     resource::
 
-        from Findig import App
+        from findig import App
 
         app = App()
         protector = Protector(app)
@@ -256,11 +256,9 @@ class BasicProtector(GateKeeper, Protector):
     def auth_func(self, fauth):
         """Supply an application-defined function that performs authentication.
 
-        The function has the following signature:
-
-        .. function fauth(username:str, password:str)
-            Return whether or not the credentials given authenticate 
-            successfully.
+        The function has the signature ``fauth(username:str, password:str) -> bool``
+        and should return whether or not the credentials given authenticate 
+        successfully.
 
         auth_func is usable as a decorator::
 
