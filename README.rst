@@ -1,7 +1,7 @@
 Findig
 ======
 
-|build-status| |docs|
+|build-status| |docs| |license|
 
 Findig is a micro-framework for building HTTP applications. It is based
 on the excellent Werkzeug_ WSGI utility library, and is meant as an
@@ -60,4 +60,9 @@ This project is documented at
 .. |build-status| image:: https://travis-ci.org/geniphi/findig.svg?branch=develop
     :target: https://travis-ci.org/geniphi/findig
     :alt: build status
+    :scale: 100%
+    
+.. |license| image:: https://img.shields.io/badge/license-MIT-blue.svg
+    :target: https://raw.githubusercontent.com/geniphi/findig/develop/LICENSE.txt
+    :alt: License
     :scale: 100%
