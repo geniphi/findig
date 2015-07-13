@@ -1,5 +1,6 @@
 Findig
 ======
+
 |docs|
 
 Findig is a micro-framework for building HTTP applications. It is based
@@ -50,3 +51,8 @@ Documentation
 
 This project is documented at 
 `findig@readthedocs <http://findig.rtfd.org/>`_.
+
+.. |docs| image:: https://readthedocs.org/projects/findig/badge/?version=latest
+    :alt: Documentation Status
+    :scale: 100%
+    :target: https://readthedocs.org/projects/findig/
