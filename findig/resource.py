@@ -106,6 +106,14 @@ class AbstractResource(metaclass=abc.ABCMeta):
         """
         return url_adapter.build(self.name, values, **args)
 
+    def __getattr__(self, name):
+        if getattr(ctx, 'resource', None) is not None:
+            if ctx.resource is self:
+                if name in ctx.url_values:
+                    return ctx.url_values[name]
+
+        raise AttributeError(name)
+
 
 class Resource(AbstractResource):
     """
