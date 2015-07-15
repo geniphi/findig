@@ -84,7 +84,8 @@ class Dispatcher:
 
     def resource(self, wrapped=None, **args):
         """
-        Create a :class:Resource instance.
+        resource(wrapped, **args)
+        Create a :class:`findig.resource.Resource` instance.
 
         :param wrapped: A wrapped function for the resource. In most cases,
                         this should be a function that takes named
