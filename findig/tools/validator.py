@@ -44,7 +44,7 @@ and their arguments are pre-registered and thus usable::
     def resource3():
         pass
 
-    @resource2.model("write")
+    @resource3.model("write")
     def write_resource(data):
         assert data['foo'] in ('bar', 'baz')
         assert len(data['cid']) == 3
@@ -56,6 +56,7 @@ __ http://werkzeug.pocoo.org/docs/routing/#builtin-converters
 from collections import namedtuple
 from collections.abc import Callable, Mapping, Sequence
 from functools import partial
+from inspect import getmembers
 import re
 
 from werkzeug.datastructures import MultiDict
@@ -63,6 +64,7 @@ from werkzeug.exceptions import BadRequest
 from werkzeug.routing import parse_converter_args, BaseConverter
 
 from findig.context import ctx
+from findig.resource import AbstractResource
 from findig.utils import DataPipe
 
 
@@ -202,6 +204,8 @@ class Validator:
     """
     def __init__(self, app):
         self.validation_specs = {}
+        self.restriction_specs = {}
+        self.strip_extras = {}
         self.attach_to(app)
 
     def attach_to(self, app):
@@ -265,6 +269,50 @@ class Validator:
                 return m.string
         return match_string
 
+    def restrict(self, *args, strip_extra=False):
+        """
+        restrict([field[, field[, ...]],] strip_extra=True)
+        Restrict the input data to the given fields
+
+        :param field: A field name that should be allowed. An asterisk at the
+            start of the field name indicates a required field (asterisks at
+            the start of field names can be escaped with another asterisk
+            character). This parameter can be used multiple times to indicate
+            different fields.
+
+        :param strip_extra: Controls the behavior upon encountering a field
+            not contained in the list, during validation. If ``True``, the
+            field will be removed. Otherwise, a :class:`UnexpectedField` is
+            raised.
+
+        Once this method is called, any field names that do not appear in the
+        list are disallowed.
+
+        """
+        FIELD_REGEX = re.compile(r"^(\**)\1(\*?)")
+        def conv_field(field_name):
+            """conv_field("*field") -> ("field", FIELD-IS-REQUIRED)"""
+            m = FIELD_REGEX.match(field_name)
+            if m:
+                return (FIELD_REGEX.sub(r"\1", field_name), m.group(2) == "*")
+            else:
+                return field_name, False
+
+        def restrict_to(resource, fields=None):
+            fields = list(map(conv_field, [] if fields is None else fields))
+            self.restriction_specs.setdefault(resource.name, {}).update(fields)
+            self.strip_extras[resource.name] = strip_extra
+            return resource
+
+        if len(args) == 0:
+            return restrict_to
+
+        elif isinstance(args[0], AbstractResource):
+            return restrict_to(args[0], args[1:])
+
+        else:
+            return partial(restrict_to, fields=args)
+
     def enforce(self, *args, **validator_spec):
         """
         enforce(resource, **validation_spec)
@@ -287,6 +335,10 @@ class Validator:
         Both of these examples will convert the *uid* field on incoming
         request data to an integer, and the *friends* field to a list of
         integers.
+
+        .. note:: Specifications given here are only checked when a field is
+                  present; see :meth:`restrict` for specifying required
+                  fields.
 
         .. warning:: Because of the way validators are hooked up, registering
             new specifications after the first request has run might cause
@@ -415,6 +467,25 @@ class Validator:
         else:
             raise InvalidSpecificationError(item_spec)
 
+    def __handle_restrictions(self, data):
+        restrictions = self.restriction_specs.get(ctx.resource.name, None)
+        if restrictions:
+            # Handle extra fields
+            extras = [field for field in data if field not in restrictions]
+            if extras and self.strip_extras.get(ctx.resource.name, False):
+                for field in extras:
+                    del data[field]
+            elif extras:
+                raise UnexpectedFields(extras, self)
+
+            # Check for required fields
+            missing = [field for field,required in restrictions.items()
+                       if required and field not in data]
+            if missing:
+                raise MissingFields(extras, self)
+
+        return data
+
     def validate(self, data):
         """
         Validate the data with the validation specifications that have
@@ -435,12 +506,16 @@ class Validator:
         spec.update(self.validation_specs.get(None, {}))
         spec.update(self.validation_specs.get(ctx.resource.name, {}))
 
-        wrapped = _ContainerWrapper(data)
+        wrapped = self.__handle_restrictions(_ContainerWrapper(data))
 
         conversion_errs = []
 
         # Transform the data according to the conversion spec
         for field, field_spec in spec.items():
+            # Ignore the field if it isn't in the specification
+            if field not in wrapped:
+                continue
+
             try:
                 converted = self.__check_item(wrapped, field, field_spec)
             except InvalidSpecificationError:
@@ -453,7 +528,7 @@ class Validator:
                 wrapped[field] = converted
 
         if conversion_errs:
-            raise ValidationFailed(conversion_errs, self)
+            raise InvalidFields(conversion_errs, self)
         else:
             return wrapped.unwrap()
 
@@ -502,6 +577,12 @@ class _ContainerWrapper:
         else:
             self._c[key] = value
 
+    def __delitem__(self, key):
+        if self._direct:
+            delattr(self._c, key)
+        else:
+            del self._c[key]
+
     def __contains__(self, key):
         if self._direct:
             return hasattr(self._c, key)
@@ -515,6 +596,12 @@ class _ContainerWrapper:
                 self._c.setlist(field, items)
 
         return self._c
+
+    def __iter__(self):
+        if self._direct:
+            yield from getmembers(self._c)
+        else:
+            yield from self._c
 
 
 class InvalidSpecificationError(ValueError):
@@ -547,7 +634,6 @@ class ValidationFailed(BadRequest):
             return Response(msg, status=e.status)
             
     """
-
     def __init__(self, fields, validator):
         super().__init__()
 
@@ -558,5 +644,22 @@ class ValidationFailed(BadRequest):
         #: The :class:`Validator` instance that raised the exception.
         self.validator = validator
 
+class UnexpectedFields(ValidationFailed):
+    """
+    Raised whenever a resource receives an unexpected input field.
+    """
 
-__all__ = ['Validator', 'InvalidSpecificationError', 'ValidationFailed']
+class MissingFields(ValidationFailed):
+    """
+    Raised when a resource does not receive a required field in its input.
+    """
+
+class InvalidFields(ValidationFailed):
+    """
+    Raised when a resource receives a field that the validator can't convert.
+    """
+
+
+
+__all__ = ['Validator', 'InvalidSpecificationError', 'ValidationFailed', 
+           'UnexpectedFields', 'MissingFields']
