@@ -65,7 +65,7 @@ from werkzeug.exceptions import BadRequest
 from werkzeug.routing import parse_converter_args, BaseConverter
 
 from findig.context import ctx
-from findig.resource import AbstractResource
+from findig.resource import AbstractResource, Collection
 from findig.utils import DataPipe, tryeach
 
 
@@ -87,6 +87,10 @@ class Validator:
 
     :param app: The Findig application that the validator is attached to.
     :type app: :class:`findig.App`
+    :param include_collections: If ``True``, any validation rules set on any
+        resource will also be used for any :class:`~findig.resource.Collection`
+        that collects it. Even when this argument is set, inherited rules can still
+        be overridden by declaring rules specifically for the collection.
 
     Validators are only capable of validating request input data (i.e., 
     data received as part of the request body). To validate URL fragments,
@@ -99,7 +103,8 @@ class Validator:
     more about converters.
 
     """
-    def __init__(self, app=None):
+    def __init__(self, app=None, include_collections=True):
+        self.include_collections = include_collections
         self.validation_specs = {}
         self.restriction_specs = {}
         self.strip_extras = {}
@@ -394,11 +399,8 @@ class Validator:
         validation specification is registered for all resources instead
         of a single one.
 
-        (Consequently, this function *cannot* be used a decorator factory
-        for resources)
-
-        Global validation specifications have lower precedence that a
-        resource specific one.
+        Global validation specifications have lower precedence than
+        resource specific ones.
 
         """
         
@@ -496,11 +498,23 @@ class Validator:
             raise InvalidSpecificationError(item_spec)
 
     def __handle_restrictions(self, data):
+        strip_extras =  self.strip_extras.get(ctx.resource.name, False)
         restrictions = self.restriction_specs.get(ctx.resource.name, None)
-        if restrictions:
+        if restrictions is None \
+        and self.include_collections \
+        and isinstance(ctx.resource, Collection):
+            restrictions = self.restriction_specs.get(
+                ctx.resource.collects.resource.name,
+                {}
+            )
+            strip_extras =  self.strip_extras.get(
+                ctx.resource.collects.resource.name,
+                False
+            )
+        if restrictions is not None:
             # Handle extra fields
             extras = [field for field in data if field not in restrictions]
-            if extras and self.strip_extras.get(ctx.resource.name, False):
+            if extras and strip_extras:
                 for field in extras:
                     del data[field]
             elif extras:
@@ -532,6 +546,13 @@ class Validator:
         """
         spec = {}
         spec.update(self.validation_specs.get(None, {}))
+        if self.include_collections and isinstance(ctx.resource, Collection):
+            spec.update(
+                self.validation_specs.get(
+                    ctx.resource.collects.resource.name,
+                    {}
+                )
+            )
         spec.update(self.validation_specs.get(ctx.resource.name, {}))
 
         wrapped = self.__handle_restrictions(_ContainerWrapper(data))

@@ -145,3 +145,44 @@ def test_validation_process(app, spec, data, restrict, skip, expected):
             runtest()
     else:
         runtest()
+
+def test_collection_inheritance(app):
+    validator = Validator(app)
+
+    @validator.enforce(foo=int)
+    @validator.restrict('foo', strip_extra=True)
+    @app.route("/<id>")
+    def item(id):
+        pass
+
+    @app.route("/")
+    @item.collection
+    def items():
+        pass
+
+    with app.test_context(path="/"):
+        assert validator.validate({"foo": "87", "bar": "strip me baby"}) == {"foo": 87}
+
+def test_collection_inheritance_overide(app):
+    validator = Validator(app)
+
+    @validator.enforce(foo=int)
+    @validator.restrict('foo', strip_extra=True)
+    @app.route("/<id>")
+    def item(id):
+        pass
+
+    @app.route("/")
+    @validator.enforce(foo='uuid')
+    @validator.restrict('foo', strip_extra=False)
+    @item.collection
+    def items():
+        pass
+
+    test_uuid = uuid.uuid4()
+
+    with app.test_context(path="/"):
+        with pytest.raises(UnexpectedFields):
+            assert validator.validate({"foo": "87", "bar": "strip me baby"}) == {"foo": 87}
+
+        assert validator.validate({"foo": str(test_uuid)}) == {"foo": test_uuid}
