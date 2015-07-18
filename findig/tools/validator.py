@@ -510,7 +510,7 @@ class Validator:
             missing = [field for field,required in restrictions.items()
                        if required and field not in data]
             if missing:
-                raise MissingFields(extras, self)
+                raise MissingFields(missing, self)
 
         return data
 
