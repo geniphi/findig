@@ -94,7 +94,7 @@ class Validator:
     `werkzeug's routing reference <http://werkzeug.pocoo.org/docs/0.10/routing/#rule-format>`_.
 
     Validators work by specifying converters for request input fields.
-    If a converter is specified, the validator to use it to convert the
+    If a converter is specified, the validator will use it to convert the
     field and replace it with the converted value. A converter can be
     any of the following:
 
@@ -203,11 +203,13 @@ class Validator:
             validator.enforce(resource, students=['string(length=10)'])
 
     """
-    def __init__(self, app):
+    def __init__(self, app=None):
         self.validation_specs = {}
         self.restriction_specs = {}
         self.strip_extras = {}
-        self.attach_to(app)
+
+        if app is not None:
+            self.attach_to(app)
 
     def attach_to(self, app):
         """
