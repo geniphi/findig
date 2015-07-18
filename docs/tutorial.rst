@@ -385,12 +385,12 @@ and add this import::
 
 Next up, let's use the validator to enforce the constraints that we've 
 identified. First up, I think it's a good idea to make sure that we don't
-get any extra fields
+get any extra fields. We can do that by adding this decorator at the top
+of both our resource declarations:
 
-::
+.. code-block:: python
 
-    validator.restrict(task, "desc", "*due", "*title")
-    validator.restrict(tasks, "desc", "*due", "*title")
+    @validator.restrict("desc", "*due", "*title")
 
 So what's happening? For both ``task`` and ``tasks``, we're telling
 the validator to only accept the fields ``desc``, ``due`` and ``title``. But
@@ -399,4 +399,26 @@ what's with the ``*``? If you guessed that the field is required, you're right!
 field names, so we can restrict our resource input data to any number of
 fields we want.
 
+All we have to do now is check that the due date is date/time string, and
+parse it into a :class:`~datetime.datetime` object. 
+With :meth:`Validator.enforce<findig.tools.validator.Validator.enforce>`, we
+can supply a converter for the due field. A converter can by a simple type, a
+magic string, or an application-defined function that takes a string as input
+and returns the parsed output. Here's what such a function can look like for
+a date/time field like ``due``::
 
+    def convert_date(string):
+        import datetime
+        format = "%Y-%m-%d %H:%M:%S%z"
+        return datetime.datetime.strptime(string, format)
+
+In fact, :meth:`Validator.date <findig.tools.validator.Validator.date>` is a
+static method that simplifies this pattern; it takes a date/time format as its
+argument and returns a converter function that parses a 
+:class:`~datetime.datetime` object using that format. That's what we'll use
+to check our ``due`` field. Add this decorator to our task declaration:
+
+
+.. code-block:: python
+
+    @validator.enforce(due=validator.date("%Y-%m-%d %H:%M:%S%z"))

@@ -1,10 +1,14 @@
+from datetime import datetime
+
+from findig.extras.sql import SQLA, SQLASet
 from findig.json import App
+from findig.tools.validator import Validator
 from sqlalchemy.schema import *
 from sqlalchemy.types import *
-from findig.extras.sql import SQLA, SQLASet
 
 app = App()
 db = SQLA("sqlite:///tasks.sqlite", app=app)
+validator = Validator(app)
 
 class Task(db.Base):
     id = Column(Integer, primary_key=True)
@@ -12,13 +16,15 @@ class Task(db.Base):
     desc = Column(String, nullable=True)
     due = Column(DateTime, nullable=False)
 
-def check_
-
+@validator.restrict("*title", "desc", "*due")
+@validator.enforce(due=validator.datetime("%Y-%m-%d %H:%M:%S%z"))
 @app.route("/tasks/<id>")
-@app.resource
+@app.resource(lazy=True)
 def task(id):
     return tasks().fetch(id=id)
 
+@validator.restrict("*title", "desc", "*due")
+@validator.enforce(due=validator.datetime("%Y-%m-%d %H:%M:%S%z"))
 @app.route("/tasks")
 @task.collection(lazy=True)
 def tasks():
