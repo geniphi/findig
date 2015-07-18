@@ -640,7 +640,7 @@ class ValidationFailed(BadRequest):
     Raised whenever a :class:`Validator` fails to validate one or more 
     fields.
 
-    This exception is a subclass of :class:`BadRequest`, so if allowed
+    This exception is a subclass of :class:`werkzeug.exceptions.BadRequest`, so if allowed
     to bubble up, findig will send a ``400 BAD REQUEST``
     response automatically.
 

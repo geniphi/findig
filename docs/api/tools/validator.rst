@@ -3,6 +3,7 @@
 
 .. automodule:: findig.tools.validator
     :members:
+    :show-inheritance:
     :exclude-members: ValidationFailed, InvalidSpecificationError
 
     .. autoexception:: ValidationFailed()
