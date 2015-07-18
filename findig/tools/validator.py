@@ -55,6 +55,7 @@ __ http://werkzeug.pocoo.org/docs/routing/#builtin-converters
 
 from collections import namedtuple
 from collections.abc import Callable, Mapping, Sequence
+from datetime import datetime
 from functools import partial
 from inspect import getmembers
 import re
@@ -64,8 +65,8 @@ from werkzeug.exceptions import BadRequest
 from werkzeug.routing import parse_converter_args, BaseConverter
 
 from findig.context import ctx
-from findig.resource import AbstractResource
-from findig.utils import DataPipe
+from findig.resource import AbstractResource, Collection
+from findig.utils import DataPipe, tryeach
 
 
 _converter_re = re.compile(r'''
@@ -86,6 +87,10 @@ class Validator:
 
     :param app: The Findig application that the validator is attached to.
     :type app: :class:`findig.App`
+    :param include_collections: If ``True``, any validation rules set on any
+        resource will also be used for any :class:`~findig.resource.Collection`
+        that collects it. Even when this argument is set, inherited rules can still
+        be overridden by declaring rules specifically for the collection.
 
     Validators are only capable of validating request input data (i.e., 
     data received as part of the request body). To validate URL fragments,
@@ -93,120 +98,19 @@ class Validator:
     `werkzeug's routing reference <http://werkzeug.pocoo.org/docs/0.10/routing/#rule-format>`_.
 
     Validators work by specifying converters for request input fields.
-    If a converter is specified, the validator to use it to convert the
-    field and replace it with the converted value. A converter can be
-    any of the following:
-
-    *   :class:`collections.abc.Callable` (including functions) -- This can
-        be a simple type such as :class:`int` or :class:`uuid.UUID`, but
-        any function or callable can work. It should take a string and 
-        convert it to a value of the desired type. If it throws an error,
-        then findig will raise a :class:`~werkzeug.exceptions.BadRequest` 
-        exception.
-
-        Example::
-       
-            # Converts an int from a valid string base 10 representation:
-            validator.enforce(resource, game_id=int)
-
-            # Converts to a float from a valid string
-            validator.enforce(resource, duration=float)
-
-    *   :class:`str` -- If a string is given, then it is interpreted as a
-        converter specification. A converter specification includes the
-        converter name and optionally arguments for pre-registered
-        converters. The following converters are pre-registered by
-        default (you may notice that they correspond to the URL rule
-        converters available for werkzeug):
-
-        .. function:: string(minlength=1, length=None, maxlength=None)
-            :noindex:
-
-            This converter will accept a string.
-            
-            :param length: If given, it will indicate a fixed length field.
-            :param minlength: The minimum allowed length for the field.
-            :param maxlength: The maximum allowed length for the field.
-
-        .. function:: any(*items)
-            :noindex:
-
-            This converter will accept only values from the variable
-            list of options passed as the converter arguments. It's
-            useful for limiting a field's value to a small set of possible
-            options.
-
-        .. function:: int(fixed_digits=0, min=None, max=None)
-            :noindex:
-
-            This converter will accept a string representation of a
-            non-negative integer.
-
-            :param fixed_digits: The number of fixed digits in the field.
-                For example, set this to **3** to convert ``'001'`` but not
-                ``'1'``. The default is a variable number of digits.
-            :param min: The minimum allowed value for the field.
-            :param max: The maximum allowed value for the field.
-
-        .. function:: float(min=None, max=None)
-            :noindex:
-
-            This converter will accept a string representation of a
-            non-negative floating point number.
-
-            :param min: The minimum allowed value for the field.
-            :param max: The maximum allowed value for the field.
-
-        .. function:: uuid()
-            :noindex:
-
-            This converter will accept a string representation of a
-            uuid and convert it to a :class:`uuid.UUID`.
-
-        Converters that do not need arguments can omit the parentheses
-        in the converter specification.
-
-        Examples::
-
-            # Converts a 4 character string
-            validator.enforce(resource, student_id='string(length=10)')
-
-            # Converts any of these string values: 'foo', 1000, True
-            validator.enforce(resource, field='any(foo, 1000, True)')
-
-            # Converts any non-negative integer
-            validator.enforce(resource, game_id='int')
-
-            # and any float <1000
-            validator.enforce(resource, duration='float(max=1000)')
-
-        .. important:: Converter specifications in this form **cannot**
-           match strings that contain forward slashes. For example,
-           *'string(length=2)'* will fail to match *'/e'* and 
-           *'any(application/json,html)'* will fail to
-           match *'application/json'*.
-
-    *   or, :class:`list` -- This must be a singleton list containing a
-        converter. When this is given, the validator will treat the field
-        like a list and use the converter to convert each item.
-
-        Example::
-
-            # Converts a list of integers
-            validator.enforce(resource, games=[int])
-
-            # Converts a list of uuids
-            validator.enforce(resource, components=['uuid'])
-
-            # Converts a list of fixed length strings
-            validator.enforce(resource, students=['string(length=10)'])
+    If a converter is specified, the validator will use it to convert the
+    field and replace it with the converted value. See :meth:`enforce` for
+    more about converters.
 
     """
-    def __init__(self, app):
+    def __init__(self, app=None, include_collections=True):
+        self.include_collections = include_collections
         self.validation_specs = {}
         self.restriction_specs = {}
         self.strip_extras = {}
-        self.attach_to(app)
+
+        if app is not None:
+            self.attach_to(app)
 
     def attach_to(self, app):
         """
@@ -269,6 +173,38 @@ class Validator:
                 return m.string
         return match_string
 
+    @staticmethod
+    def date(format, *alternatives):
+        """
+        date(format[, format[, ...]])
+
+        Create a function that validates a date field.
+
+        :param format: A date/time format according to 
+            :meth:`datetime.datetime.strptime`. If more than one formats are
+            passed in, the generated function will try each format in order
+            until one of them works on the field (or until there are no formats
+            left to try).
+
+        Example::
+
+            >>> func = Validator.date("%Y-%m-%d %H:%M:%S%z")
+            >>> func("2015-07-17 09:00:00+0400")
+            datetime.datetime(2015, 7, 17, 9, 0, tzinfo=datetime.timezone(datetime.timedelta(0, 14400)))
+            >>> func("not-a-date")
+            Traceback (most recent call last):
+              ...
+            ValueError: time data 'not-a-date' does not match format '%Y-%m-%d %H:%M:%S%z'
+
+            >>> func = Validator.date("%Y-%m-%d %H:%M:%S%z", "%Y-%m-%d")
+            >>> func("2015-07-17")
+            datetime.datetime(2015, 7, 17, 0, 0)
+
+        """
+        formats = [format]; formats.extend(alternatives)
+        funcs = [lambda s: datetime.strptime(s, fmt) for fmt in formats]
+        return partial(tryeach, funcs)
+
     def restrict(self, *args, strip_extra=False):
         """
         restrict([field[, field[, ...]],] strip_extra=True)
@@ -282,7 +218,7 @@ class Validator:
 
         :param strip_extra: Controls the behavior upon encountering a field
             not contained in the list, during validation. If ``True``, the
-            field will be removed. Otherwise, a :class:`UnexpectedField` is
+            field will be removed. Otherwise, a :class:`UnexpectedFields` is
             raised.
 
         Once this method is called, any field names that do not appear in the
@@ -321,9 +257,111 @@ class Validator:
 
         The validation specification is a set of ``field=converter``
         arguments linking an input field name to a converter that should
-        be used to validate the field::
+        be used to validate the field. A converter can be any of the following:
 
-            validator.enforce(res, uid=int, friends=[int])
+        *   :class:`collections.abc.Callable` (including functions) -- This can
+            be a simple type such as :class:`int` or :class:`uuid.UUID`, but
+            any function or callable can work. It should take a field value and 
+            convert it to a value of the desired type. If it throws an error,
+            then findig will raise a :class:`~werkzeug.exceptions.BadRequest` 
+            exception.
+
+            Example::
+       
+                # Converts an int from a valid string base 10 representation:
+                validator.enforce(resource, game_id=int)
+
+                # Converts to a float from a valid string
+                validator.enforce(resource, duration=float)
+
+        *   :class:`str` -- If a string is given, then it is interpreted as a
+            converter specification. A converter specification includes the
+            converter name and optionally arguments for pre-registered
+            converters. The following converters are pre-registered by
+            default (you may notice that they correspond to the URL rule
+            converters available for werkzeug):
+
+            .. function:: string(minlength=1, length=None, maxlength=None)
+                :noindex:
+
+                This converter will accept a string.
+            
+                :param length: If given, it will indicate a fixed length field.
+                :param minlength: The minimum allowed length for the field.
+                :param maxlength: The maximum allowed length for the field.
+
+            .. function:: any(*items)
+                :noindex:
+
+                This converter will accept only values from the variable
+                list of options passed as the converter arguments. It's
+                useful for limiting a field's value to a small set of possible
+                options.
+
+            .. function:: int(fixed_digits=0, min=None, max=None)
+                :noindex:
+
+                This converter will accept a string representation of a
+                non-negative integer.
+
+                :param fixed_digits: The number of fixed digits in the field.
+                    For example, set this to **3** to convert ``'001'`` but not
+                    ``'1'``. The default is a variable number of digits.
+                :param min: The minimum allowed value for the field.
+                :param max: The maximum allowed value for the field.
+
+            .. function:: float(min=None, max=None)
+                :noindex:
+
+                This converter will accept a string representation of a
+                non-negative floating point number.
+
+                :param min: The minimum allowed value for the field.
+                :param max: The maximum allowed value for the field.
+
+            .. function:: uuid()
+                :noindex:
+
+                This converter will accept a string representation of a
+                uuid and convert it to a :class:`uuid.UUID`.
+
+            Converters that do not need arguments can omit the parentheses
+            in the converter specification.
+
+            Examples::
+
+                # Converts a 4 character string
+                validator.enforce(resource, student_id='string(length=10)')
+
+                # Converts any of these string values: 'foo', 1000, True
+                validator.enforce(resource, field='any(foo, 1000, True)')
+
+                # Converts any non-negative integer
+                validator.enforce(resource, game_id='int')
+
+                # and any float <1000
+                validator.enforce(resource, duration='float(max=1000)')
+
+            .. important:: Converter specifications in this form **cannot**
+               match strings that contain forward slashes. For example,
+               *'string(length=2)'* will fail to match *'/e'* and 
+               *'any(application/json,html)'* will fail to
+               match *'application/json'*.
+
+        *   or, :class:`list` -- This must be a singleton list containing a
+            converter. When this is given, the validator will treat the field
+            like a list and use the converter to convert each item.
+
+            Example::
+
+                # Converts a list of integers
+                validator.enforce(resource, games=[int])
+
+                # Converts a list of uuids
+                validator.enforce(resource, components=['uuid'])
+
+                # Converts a list of fixed length strings
+                validator.enforce(resource, students=['string(length=10)'])
 
         This method can be used as a decorator factory for resources::
 
@@ -332,13 +370,8 @@ class Validator:
             def res():
                 return {}
 
-        Both of these examples will convert the *uid* field on incoming
-        request data to an integer, and the *friends* field to a list of
-        integers.
-
-        .. note:: Specifications given here are only checked when a field is
-                  present; see :meth:`restrict` for specifying required
-                  fields.
+        Converter specifications given here are only checked when a field is
+        present; see :meth:`restrict` for specifying required fields.
 
         .. warning:: Because of the way validators are hooked up, registering
             new specifications after the first request has run might cause
@@ -366,11 +399,8 @@ class Validator:
         validation specification is registered for all resources instead
         of a single one.
 
-        (Consequently, this function *cannot* be used a decorator factory
-        for resources)
-
-        Global validation specifications have lower precedence that a
-        resource specific one.
+        Global validation specifications have lower precedence than
+        resource specific ones.
 
         """
         
@@ -468,11 +498,23 @@ class Validator:
             raise InvalidSpecificationError(item_spec)
 
     def __handle_restrictions(self, data):
+        strip_extras =  self.strip_extras.get(ctx.resource.name, False)
         restrictions = self.restriction_specs.get(ctx.resource.name, None)
-        if restrictions:
+        if restrictions is None \
+        and self.include_collections \
+        and isinstance(ctx.resource, Collection):
+            restrictions = self.restriction_specs.get(
+                ctx.resource.collects.resource.name,
+                {}
+            )
+            strip_extras =  self.strip_extras.get(
+                ctx.resource.collects.resource.name,
+                False
+            )
+        if restrictions is not None:
             # Handle extra fields
             extras = [field for field in data if field not in restrictions]
-            if extras and self.strip_extras.get(ctx.resource.name, False):
+            if extras and strip_extras:
                 for field in extras:
                     del data[field]
             elif extras:
@@ -482,7 +524,7 @@ class Validator:
             missing = [field for field,required in restrictions.items()
                        if required and field not in data]
             if missing:
-                raise MissingFields(extras, self)
+                raise MissingFields(missing, self)
 
         return data
 
@@ -504,6 +546,13 @@ class Validator:
         """
         spec = {}
         spec.update(self.validation_specs.get(None, {}))
+        if self.include_collections and isinstance(ctx.resource, Collection):
+            spec.update(
+                self.validation_specs.get(
+                    ctx.resource.collects.resource.name,
+                    {}
+                )
+            )
         spec.update(self.validation_specs.get(ctx.resource.name, {}))
 
         wrapped = self.__handle_restrictions(_ContainerWrapper(data))
@@ -612,7 +661,7 @@ class ValidationFailed(BadRequest):
     Raised whenever a :class:`Validator` fails to validate one or more 
     fields.
 
-    This exception is a subclass of :class:`BadRequest`, so if allowed
+    This exception is a subclass of :class:`werkzeug.exceptions.BadRequest`, so if allowed
     to bubble up, findig will send a ``400 BAD REQUEST``
     response automatically.
 
