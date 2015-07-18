@@ -1,6 +1,8 @@
 Findig
 ======
 
+|build-status| |docs| |license|
+
 Findig is a micro-framework for building HTTP applications. It is based
 on the excellent Werkzeug_ WSGI utility library, and is meant as an
 alternative to Flask_ when implementing RESTful APIs.
@@ -8,15 +10,12 @@ alternative to Flask_ when implementing RESTful APIs.
 .. _werkzeug: http://werkzeug.pocoo.org
 .. _flask: http://flask.pocoo.org
 
-Using Findig is pretty easy. Take a look at the examples/ directory
-for some usage examples to get you started.
-
 Features
 --------
 
-- Easy, declarative support for RESTful API development.
-- Fully customizable input and output types.
-- High level utilities such as resource watchers and caches.
+- Declarative support for RESTful API development.
+- Fully customizable input and output content-types.
+- High level utilities.
 
 Installing
 ----------
@@ -27,6 +26,8 @@ install the development version, run:
 .. code-block:: bash
 
     $ pip install git+https://github.com/geniphi/findig.git#egg=Findig
+    
+Findig is written in Python3 and is supported on Python 3.4.
 
 Contribute
 ----------
@@ -50,3 +51,18 @@ Documentation
 
 This project is documented at 
 `findig@readthedocs <http://findig.rtfd.org/>`_.
+
+.. |docs| image:: https://readthedocs.org/projects/findig/badge/?version=latest
+    :alt: Documentation Status
+    :scale: 100%
+    :target: https://readthedocs.org/projects/findig/
+    
+.. |build-status| image:: https://travis-ci.org/geniphi/findig.svg?branch=develop
+    :target: https://travis-ci.org/geniphi/findig
+    :alt: build status
+    :scale: 100%
+    
+.. |license| image:: https://img.shields.io/badge/license-MIT-blue.svg
+    :target: https://raw.githubusercontent.com/geniphi/findig/develop/LICENSE.txt
+    :alt: License
+    :scale: 100%

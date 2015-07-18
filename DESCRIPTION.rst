@@ -27,13 +27,3 @@ function that knows how to read the resource data from storage, and optionally
 update it when it changes; Findig handles the REST (yeah, we like puns).
 Of course, most of Findig's guts are easily customizable for when your API
 needs an added layer of complexity.
-
-
-Useful features
----------------
-
-- Easy caching support. Srsly iz so ez.
-
-- Built-in support for multiple response types.
-
-- Protect resources with OAuth (oauthlib2 support via extra).

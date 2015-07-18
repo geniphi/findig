@@ -2,7 +2,7 @@ Installation
 ============
 
 .. note:: Findig is pre-release software and isn't currently installable
-          by PyPI. Currently though only way to install Findig is using
+          by PyPI. Currently the only way to install Findig is using
           its development version.
 
 Installing Findig is easy, as long as you have the right tool for the
@@ -13,7 +13,7 @@ job. Make sure you have `pip installed`_ before proceeding.
 Supported Python versions
 -------------------------
 
-Findig currently supports Python 2.7.
+Findig currently supports Python 3.4.
 
 Installing the development version
 ----------------------------------
@@ -48,8 +48,7 @@ Here's a list of all the supported extra features:
 ============ ========================= ======================
 Feature name Description               Installed Requirements
 ============ ========================= ======================
-redis        Redis cache support       redis
-jinja        Jinja2 templating support jinja2
+redis        Redis data set support    redis
 ============ ========================= ======================
 
 Getting the source code

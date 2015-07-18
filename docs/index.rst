@@ -6,9 +6,9 @@
 Welcome to Findig's documentation!
 ==================================
 
-Findig is a micro-framework for developing HTTP applications with
-Python. It is built on top of Werkzeug_ and is intended as an alternative
-to Flask_, especially when developing RESTful APIs.
+Findig is a micro-framework for developing HTTP applications in Python. It is 
+built on Werkzeug_ and is intended as an alternative to Flask_ when 
+developing RESTful APIs.
 
 .. _werkzeug: http://werkzeug.pocoo.org
 .. _flask: http://flask.pocoo.org
@@ -29,8 +29,8 @@ installation and quickstart instructions) and detailed API documentation.
 	pull requests with documentation fixes for review.
 
 Findig uses Werkzeug internally, and so some understanding of how
-Werkzeug works and the data types it uses, while not necessary, can
-probably be helpful:
+Werkzeug works and its data types, while not necessary, will
+almost certainly be helpful:
 
 * `Werkzeug documentation <http://werkzeug.pocoo.org/docs>`_.
 
@@ -57,3 +57,7 @@ This section isn't ready yet. Please check back later.
 .. toctree::
    :maxdepth: 2
 
+   api/index
+   api/tools/index
+   api/extras
+   api/utils

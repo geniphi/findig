@@ -1,3 +1,4 @@
+#-*- coding: utf-8 -*-
 from setuptools import setup, find_packages
 from codecs import open
 from os import path
@@ -16,7 +17,7 @@ setup(
     description="A micro-framework for RESTful web applications.",
     long_description=read("DESCRIPTION.rst"),
 
-    url="not-a-valid-url",
+    url="https://github.com/geniphi/findig",
 
     author="Te-je Rodgers",
     author_email="tjd.rodgers@gmail.com",
@@ -27,10 +28,7 @@ setup(
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
-        "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.3",
         "Programming Language :: Python :: 3.4",
         "Topic :: Internet",
         "Topic :: Internet :: WWW/HTTP",
@@ -39,17 +37,19 @@ setup(
 
     keywords="web framework werkzeug REST",
 
-    packages=find_packages(exclude=["tests*",]),
+    packages=find_packages(exclude=["test*",]),
 
     package_data={
         'findig': ['VERSION'],
     },
 
-    install_requires=['werkzeug'],
+    setup_requires=['setuptools_scm'],
+    use_setuptools_scm={'write_to': 'findig/VERSION'},
 
+    install_requires=['werkzeug'],
     extras_require={
         'redis': ['redis'],
-        'jinja': ['jinja2'],
-    }
+        'sql': ['sqlalchemy'],
+    },
 
 )
