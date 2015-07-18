@@ -79,8 +79,7 @@ class JSONMixin:
     def _respond_error(self, err):
         # TODO: log error
         traceback.print_exc()
-        return Response(self.serialize({"message": "internal error"}), 
-                        mimetype="application/json", status=500)
+        return self.make_response({"message": "internal error"}, status=500)
 
     def _respond_http_error(self, http_err):
         response = http_err.get_response(request)
@@ -89,9 +88,21 @@ class JSONMixin:
         del headers['Content-Type']
         del headers['Content-Length']
 
-        return Response(self.serialize({"message": http_err.description}),
-                        mimetype="application/json", 
-                        status=response.status, headers=response.headers)
+        return self.make_response({"message": http_err.description},
+                                  status=response.status, 
+                                  headers=response.headers)
+
+    def make_response(self, data, **args):
+        """
+        make_response(data, status=None, headers=None)
+
+        Construct a JSON response from the given data.
+        """
+        kwargs.pop("mimetype", None)
+        kwargs.pop("content_type", None)
+
+        jsonified = self.serialize(data)
+        return Response(jsonified, mimetype="application/json", **args)
 
     def serialize(self, data):
         jsonified = json.dumps(data, indent=self.indent, cls=self.encoder_cls)
