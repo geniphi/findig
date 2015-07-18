@@ -43,6 +43,9 @@ setup(
         'findig': ['VERSION'],
     },
 
+    setup_requires=['setuptools_scm'],
+    use_setuptools_scm={'write_to': 'findig/VERSION'},
+
     install_requires=['werkzeug'],
     extras_require={
         'redis': ['redis'],
