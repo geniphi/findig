@@ -282,7 +282,7 @@ class Validator:
 
         :param strip_extra: Controls the behavior upon encountering a field
             not contained in the list, during validation. If ``True``, the
-            field will be removed. Otherwise, a :class:`UnexpectedField` is
+            field will be removed. Otherwise, a :class:`UnexpectedFields` is
             raised.
 
         Once this method is called, any field names that do not appear in the
