@@ -98,8 +98,8 @@ class JSONMixin:
 
         Construct a JSON response from the given data.
         """
-        kwargs.pop("mimetype", None)
-        kwargs.pop("content_type", None)
+        args.pop("mimetype", None)
+        args.pop("content_type", None)
 
         jsonified = self.serialize(data)
         return Response(jsonified, mimetype="application/json", **args)

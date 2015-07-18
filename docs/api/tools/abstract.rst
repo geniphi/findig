@@ -6,6 +6,7 @@ rather abstract classes for how they are expected to behave are defined
 so that support libraries and applications can provide their own
 implementations.
 
+.. _data-sets:
 
 Data sets
 ---------

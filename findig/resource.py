@@ -293,7 +293,7 @@ class Resource(AbstractResource):
         The decorated function will be replaced in its namespace by a 
         :class:`Collection` that wraps it. Any keyword arguments
         passed to the decorator factory will be handed over to the
-        :class:Collection constructor. If no keyword arguments 
+        :class:`Collection` constructor. If no keyword arguments 
         are required, then ``@collection`` may be used instead of
         ``@collection()``.
 
