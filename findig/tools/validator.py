@@ -55,6 +55,7 @@ __ http://werkzeug.pocoo.org/docs/routing/#builtin-converters
 
 from collections import namedtuple
 from collections.abc import Callable, Mapping, Sequence
+from datetime import datetime
 from functools import partial
 from inspect import getmembers
 import re
@@ -65,7 +66,7 @@ from werkzeug.routing import parse_converter_args, BaseConverter
 
 from findig.context import ctx
 from findig.resource import AbstractResource
-from findig.utils import DataPipe
+from findig.utils import DataPipe, tryeach
 
 
 _converter_re = re.compile(r'''
@@ -268,6 +269,38 @@ class Validator:
             else:
                 return m.string
         return match_string
+
+    @staticmethod
+    def date(format, *alternatives):
+        """
+        date(format[, format[, ...]])
+
+        Create a function that validates a date field.
+
+        :param format: A date/time format according to 
+            :meth:`datetime.datetime.strptime`. If more than one formats are
+            passed in, the generated function will try each format in order
+            until one of them works on the field (or until there are no formats
+            left to try).
+
+        Example::
+
+            >>> func = Validator.date("%Y-%m-%d %H:%M:%S%z")
+            >>> func("2015-07-17 09:00:00+0400")
+            datetime.datetime(2015, 7, 17, 9, 0, tzinfo=datetime.timezone(datetime.timedelta(0, 14400)))
+            >>> func("not-a-date")
+            Traceback (most recent call last):
+              ...
+            ValueError: time data 'not-a-date' does not match format '%Y-%m-%d %H:%M:%S%z'
+
+            >>> func = Validator.date("%Y-%m-%d %H:%M:%S%z", "%Y-%m-%d")
+            >>> func("2015-07-17")
+            datetime.datetime(2015, 7, 17, 0, 0)
+
+        """
+        formats = [format]; formats.extend(alternatives)
+        funcs = [lambda s: datetime.strptime(s, fmt) for fmt in formats]
+        return partial(tryeach, funcs)
 
     def restrict(self, *args, strip_extra=False):
         """
