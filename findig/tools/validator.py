@@ -95,112 +95,8 @@ class Validator:
 
     Validators work by specifying converters for request input fields.
     If a converter is specified, the validator will use it to convert the
-    field and replace it with the converted value. A converter can be
-    any of the following:
-
-    *   :class:`collections.abc.Callable` (including functions) -- This can
-        be a simple type such as :class:`int` or :class:`uuid.UUID`, but
-        any function or callable can work. It should take a string and 
-        convert it to a value of the desired type. If it throws an error,
-        then findig will raise a :class:`~werkzeug.exceptions.BadRequest` 
-        exception.
-
-        Example::
-       
-            # Converts an int from a valid string base 10 representation:
-            validator.enforce(resource, game_id=int)
-
-            # Converts to a float from a valid string
-            validator.enforce(resource, duration=float)
-
-    *   :class:`str` -- If a string is given, then it is interpreted as a
-        converter specification. A converter specification includes the
-        converter name and optionally arguments for pre-registered
-        converters. The following converters are pre-registered by
-        default (you may notice that they correspond to the URL rule
-        converters available for werkzeug):
-
-        .. function:: string(minlength=1, length=None, maxlength=None)
-            :noindex:
-
-            This converter will accept a string.
-            
-            :param length: If given, it will indicate a fixed length field.
-            :param minlength: The minimum allowed length for the field.
-            :param maxlength: The maximum allowed length for the field.
-
-        .. function:: any(*items)
-            :noindex:
-
-            This converter will accept only values from the variable
-            list of options passed as the converter arguments. It's
-            useful for limiting a field's value to a small set of possible
-            options.
-
-        .. function:: int(fixed_digits=0, min=None, max=None)
-            :noindex:
-
-            This converter will accept a string representation of a
-            non-negative integer.
-
-            :param fixed_digits: The number of fixed digits in the field.
-                For example, set this to **3** to convert ``'001'`` but not
-                ``'1'``. The default is a variable number of digits.
-            :param min: The minimum allowed value for the field.
-            :param max: The maximum allowed value for the field.
-
-        .. function:: float(min=None, max=None)
-            :noindex:
-
-            This converter will accept a string representation of a
-            non-negative floating point number.
-
-            :param min: The minimum allowed value for the field.
-            :param max: The maximum allowed value for the field.
-
-        .. function:: uuid()
-            :noindex:
-
-            This converter will accept a string representation of a
-            uuid and convert it to a :class:`uuid.UUID`.
-
-        Converters that do not need arguments can omit the parentheses
-        in the converter specification.
-
-        Examples::
-
-            # Converts a 4 character string
-            validator.enforce(resource, student_id='string(length=10)')
-
-            # Converts any of these string values: 'foo', 1000, True
-            validator.enforce(resource, field='any(foo, 1000, True)')
-
-            # Converts any non-negative integer
-            validator.enforce(resource, game_id='int')
-
-            # and any float <1000
-            validator.enforce(resource, duration='float(max=1000)')
-
-        .. important:: Converter specifications in this form **cannot**
-           match strings that contain forward slashes. For example,
-           *'string(length=2)'* will fail to match *'/e'* and 
-           *'any(application/json,html)'* will fail to
-           match *'application/json'*.
-
-    *   or, :class:`list` -- This must be a singleton list containing a
-        converter. When this is given, the validator will treat the field
-        like a list and use the converter to convert each item.
-
-        Example::
-
-            # Converts a list of integers
-            validator.enforce(resource, games=[int])
-
-            # Converts a list of uuids
-            validator.enforce(resource, components=['uuid'])
-
-            # Converts a list of fixed length strings
-            validator.enforce(resource, students=['string(length=10)'])
+    field and replace it with the converted value. See :meth:`enforce` for
+    more about converters.
 
     """
     def __init__(self, app=None):
@@ -356,9 +252,111 @@ class Validator:
 
         The validation specification is a set of ``field=converter``
         arguments linking an input field name to a converter that should
-        be used to validate the field::
+        be used to validate the field. A converter can be any of the following:
 
-            validator.enforce(res, uid=int, friends=[int])
+        *   :class:`collections.abc.Callable` (including functions) -- This can
+            be a simple type such as :class:`int` or :class:`uuid.UUID`, but
+            any function or callable can work. It should take a field value and 
+            convert it to a value of the desired type. If it throws an error,
+            then findig will raise a :class:`~werkzeug.exceptions.BadRequest` 
+            exception.
+
+            Example::
+       
+                # Converts an int from a valid string base 10 representation:
+                validator.enforce(resource, game_id=int)
+
+                # Converts to a float from a valid string
+                validator.enforce(resource, duration=float)
+
+        *   :class:`str` -- If a string is given, then it is interpreted as a
+            converter specification. A converter specification includes the
+            converter name and optionally arguments for pre-registered
+            converters. The following converters are pre-registered by
+            default (you may notice that they correspond to the URL rule
+            converters available for werkzeug):
+
+            .. function:: string(minlength=1, length=None, maxlength=None)
+                :noindex:
+
+                This converter will accept a string.
+            
+                :param length: If given, it will indicate a fixed length field.
+                :param minlength: The minimum allowed length for the field.
+                :param maxlength: The maximum allowed length for the field.
+
+            .. function:: any(*items)
+                :noindex:
+
+                This converter will accept only values from the variable
+                list of options passed as the converter arguments. It's
+                useful for limiting a field's value to a small set of possible
+                options.
+
+            .. function:: int(fixed_digits=0, min=None, max=None)
+                :noindex:
+
+                This converter will accept a string representation of a
+                non-negative integer.
+
+                :param fixed_digits: The number of fixed digits in the field.
+                    For example, set this to **3** to convert ``'001'`` but not
+                    ``'1'``. The default is a variable number of digits.
+                :param min: The minimum allowed value for the field.
+                :param max: The maximum allowed value for the field.
+
+            .. function:: float(min=None, max=None)
+                :noindex:
+
+                This converter will accept a string representation of a
+                non-negative floating point number.
+
+                :param min: The minimum allowed value for the field.
+                :param max: The maximum allowed value for the field.
+
+            .. function:: uuid()
+                :noindex:
+
+                This converter will accept a string representation of a
+                uuid and convert it to a :class:`uuid.UUID`.
+
+            Converters that do not need arguments can omit the parentheses
+            in the converter specification.
+
+            Examples::
+
+                # Converts a 4 character string
+                validator.enforce(resource, student_id='string(length=10)')
+
+                # Converts any of these string values: 'foo', 1000, True
+                validator.enforce(resource, field='any(foo, 1000, True)')
+
+                # Converts any non-negative integer
+                validator.enforce(resource, game_id='int')
+
+                # and any float <1000
+                validator.enforce(resource, duration='float(max=1000)')
+
+            .. important:: Converter specifications in this form **cannot**
+               match strings that contain forward slashes. For example,
+               *'string(length=2)'* will fail to match *'/e'* and 
+               *'any(application/json,html)'* will fail to
+               match *'application/json'*.
+
+        *   or, :class:`list` -- This must be a singleton list containing a
+            converter. When this is given, the validator will treat the field
+            like a list and use the converter to convert each item.
+
+            Example::
+
+                # Converts a list of integers
+                validator.enforce(resource, games=[int])
+
+                # Converts a list of uuids
+                validator.enforce(resource, components=['uuid'])
+
+                # Converts a list of fixed length strings
+                validator.enforce(resource, students=['string(length=10)'])
 
         This method can be used as a decorator factory for resources::
 
@@ -367,13 +365,8 @@ class Validator:
             def res():
                 return {}
 
-        Both of these examples will convert the *uid* field on incoming
-        request data to an integer, and the *friends* field to a list of
-        integers.
-
-        .. note:: Specifications given here are only checked when a field is
-                  present; see :meth:`restrict` for specifying required
-                  fields.
+        Converter specifications given here are only checked when a field is
+        present; see :meth:`restrict` for specifying required fields.
 
         .. warning:: Because of the way validators are hooked up, registering
             new specifications after the first request has run might cause
