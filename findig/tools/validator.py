@@ -711,4 +711,4 @@ class InvalidFields(ValidationFailed):
 
 
 __all__ = ['Validator', 'InvalidSpecificationError', 'ValidationFailed', 
-           'UnexpectedFields', 'MissingFields']
+           'UnexpectedFields', 'MissingFields', 'InvalidFields']
