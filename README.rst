@@ -68,3 +68,6 @@ This project is documented at
     :scale: 100%
 
 .. |gitter-chat| image:: https://img.shields.io/badge/gitter-support-brightgreen.svg
+    :target: https://gitter.im/geniphi/findig
+    :alt: Gitter support
+    :scale: 100%
