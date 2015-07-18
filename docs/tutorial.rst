@@ -25,7 +25,7 @@ Add the following to a file and save it as *taskman.py*
     def task(id):
         return {}
 
-    @app.route("/tasks")
+    @app.route("/tasks/")
     @task.collection
     def tasks():
         return []
@@ -76,9 +76,9 @@ The next block declares our ``tasks`` collection. We'll use it to get a list
 of all of our tasks, and to add new tasks to that list. Bit by bit, here's
 what is going on in that code:
 
-* ``@app.route("/tasks")`` should be familiar. We're once again assigning a URL
+* ``@app.route("/tasks/")`` should be familiar. We're once again assigning a URL
   rule, only this time there are no variable parts so it will match only one
-  URL (``/tasks``).
+  URL (``/tasks/``).
 
 * ``@task.collection`` declares tasks as a collection containing ``task``
   resource instances. Remember how ``app.resource`` turned our resource function
@@ -228,7 +228,7 @@ Next, we'll add the model for ``tasks``::
 
 update the resource function for our ``tasks`` collection::
 
-    @app.route("/tasks")
+    @app.route("/tasks/")
     @task.collection
     def tasks():
         return TASKS
@@ -304,7 +304,7 @@ with three columns (id, title and desc).
 Next up, let's use that schema to create an SQLA data set. Replace the 
 declaration for your tasks collection with this code::
 
-    @app.route("/tasks")
+    @app.route("/tasks/")
     @task.collection(lazy=True)
     def tasks():
         return SQLASet(Task)
@@ -386,18 +386,24 @@ and add this import::
 Next up, let's use the validator to enforce the constraints that we've 
 identified. First up, I think it's a good idea to make sure that we don't
 get any extra fields. We can do that by adding this decorator at the top
-of both our resource declarations:
+of our resource declaration for ``task``:
 
 .. code-block:: python
 
     @validator.restrict("desc", "*due", "*title")
 
-So what's happening? For both ``task`` and ``tasks``, we're telling
+So what's happening? We're telling
 the validator to only accept the fields ``desc``, ``due`` and ``title``. But
 what's with the ``*``? If you guessed that the field is required, you're right!
 :meth:`~findig.tools.validator.Validator.restrict` accepts a variable number of
 field names, so we can restrict our resource input data to any number of
 fields we want.
+
+.. tip:: We've only set a validation rule for ``task``, but what about ``tasks``?
+    Since ``tasks`` is a collection of ``task`` instances, the validator will
+    check input for ``tasks`` with the rules we've defined for ``task`` by
+    default. If you want to disable this behavior, you can pass
+    ``include_collections=False`` to the validator constructor.
 
 All we have to do now is check that the due date is date/time string, and
 parse it into a :class:`~datetime.datetime` object. 
@@ -422,3 +428,197 @@ to check our ``due`` field. Add this decorator to our task declaration:
 .. code-block:: python
 
     @validator.enforce(due=validator.date("%Y-%m-%d %H:%M:%S%z"))
+
+With that, we've set up validation for our request input. You should go ahead
+and try sending requests to the API we've created.
+
+Calling our API
+---------------
+
+By now, we have a pretty decent API, but how exactly do we use it? First,
+let's start our development server::
+
+    $ python taskman.py
+     * Running on http://localhost:5000/ (Press CTRL+C to quit)
+     * Restarting with stat
+
+Our development server is running on port 5000. Calling our API is a
+matter of sending ``application/json`` HTTP requests to the server. For testing, 
+you'll need a program that can send ``application/json`` requests, since your
+browser probably doesn't provide an interface for this. The examples in this
+section will use the command-line tool `cURL <http://http://curl.haxx.se//>`_,
+but they'll include all the details your need to send the requests with any
+tool you prefer to use.
+
+.. tip::
+    If you prefer a graphical interface, you might want to try the
+    `Postman <https://chrome.google.com/webstore/detail/postman/fhbjgbiflinjbdggehcddcbncdddomop>`_
+    Google Chrome extension (pictured below).
+
+    .. image:: _static/postman.png
+
+Listing our tasks
+~~~~~~~~~~~~~~~~~
+
+Send a ``GET`` request to ``/tasks/``. Here's how to do it in cURL::
+
+    $ curl localhost:5000/tasks/
+    []
+
+The response is a JSON list containing all of the tasks that we have created.
+Since we haven't created any yet, we get an empty list.
+
+Creating a new task
+~~~~~~~~~~~~~~~~~~~
+
+To create a new task, we send a ``POST`` request to ``/tasks/``. The request
+should have a ``Content-Type: application/json`` header, and the request body
+must be a JSON object containing the attributes for our new task::
+
+    $ curl -i -X POST -H "Content-Type: application/json" -d '{"title": "My Task"}' localhost:5000/tasks/
+    HTTP/1.0 400 BAD REQUEST
+    Content-Type: application/json
+    Content-Length: 91
+    Server: Werkzeug/0.10.4 Python/3.4.2
+    Date: Sat, 18 Jul 2015 03:33:58 GMT
+
+    {"message": "The browser (or proxy) sent a request that this server could not understand."}
+
+What's with the error here? Well, remember that we've set up a validator for
+our ``tasks`` resource to require a 'due' field with a parseable date/time. Let's
+modify our request to include one::
+
+    $ curl -i -X POST -H "Content-Type: application/json" -d '{"title": "My Task", "due": "2015-07-19 00:00:00+0400"}' localhost:5000/tasks/
+    HTTP/1.0 201 CREATED
+    Content-Length: 9
+    Content-Type: application/json
+    Date: Sat, 18 Jul 2015 03:40:01 GMT
+    Location: http://localhost:5000/tasks/1
+    Server: Werkzeug/0.10.4 Python/3.4.2
+
+    {"id": 1}
+
+Notably, the status code returned is ``201 CREATED`` and *not* ``200 OK``.
+Additionally, Findig will try to fill the ``Location`` header, as long as 
+the data returned from the collection resource function is enough to build
+a URL for the created resource instance. Our resource function uses
+:class:`~findig.extras.sql.SQLASet`, which returns the primary key fields.
+
+Editing a task
+~~~~~~~~~~~~~~
+
+For this one, we send a ``PUT`` request to the task URL. Just like when creating
+a task, The request should have a ``Content-Type: application/json`` header, and 
+the request body must be a JSON object containing the attributes for our updated 
+task. We must send *all* fields, including the ones that we're not updating, 
+since this request type overwrites all of the task's data (unfortunately,
+Findig `doesn't support PATCH <https://github.com/geniphi/findig/issues/9>`_ 
+yet)::
+
+    $ curl -i -X POST -H "Content-Type: application/json" -d '{"title": "My Task", "due": "2015-07-19 00:00:00+0400", "desc": "My awesome task dawg."}' localhost:5000/tasks/1
+    HTTP/1.0 200 OK
+    Content-Type: text/plain; charset=utf-8
+    Content-Length: 0
+    Server: Werkzeug/0.10.4 Python/3.4.2
+    Date: Sat, 18 Jul 2015 03:47:00 GMT
+
+Deleting a task
+~~~~~~~~~~~~~~~
+
+You can probably guess this one; to do this, we send a DELETE request to the
+task's URL. Let's delete that task we just created; we're fickle like that::
+
+    $ curl -i -X DELETE localhost:5000/tasks/1
+    HTTP/1.0 200 OK
+    Content-Type: text/plain; charset=utf-8
+    Content-Length: 0
+    Server: Werkzeug/0.10.4 Python/3.4.2
+    Date: Sat, 18 Jul 2015 03:52:12 GMT
+
+It works! It all works!
+
+
+Customizing error output
+------------------------
+
+Remember when we sent a POST request to ``/tasks/`` without a required
+field and it gave us a cryptic error message? We should probably do something
+about that. We're gonna return a little bit more information to let the
+client know what exactly has gone wrong.
+
+To do this, we have to override the application's default error handler, which
+Findig allows us to do for specific exception types by default [#f1]_. The key
+is realising that :class:`~findig.tools.validator.Validator` raises specific
+exceptions when something goes wrong, all resolving to ``400 BAD REQUEST``:
+
+* :class:`findig.tools.validator.MissingFields` -- Raised when the validator 
+  expects one or more required fields, but the client does not send them.
+
+* :class:`findig.tools.validator.UnexpectedFields` -- Raised when the 
+  validator receives one or more fields that it does not expect.
+
+* :class:`findig.tools.validator.InvalidFields` -- Raised when the validator 
+  receives one or more fields that can't be converted using the supplied 
+  converters.
+
+Knowing this, we can update the app to send a more detailed error whenever
+a missing field is encountered:
+
+.. literalinclude:: ../examples/taskman.py
+    :language: python
+    :start-after: return SQLASet
+    :end-before: if __name__
+
+You'll also want to import :class:`~finding.tools.validator.MissingFields`::
+
+    from findig.tools.validator import MissingFields
+
+Now, let's send another request omitting a field::
+
+    $ curl -i -X POST -H "Content-Type: application/json" -d '{"title": "My Task"}' localhost:5000/tasks/
+    HTTP/1.0 400 BAD REQUEST
+    Content-Type: application/json
+    Content-Length: 114
+    Server: Werkzeug/0.10.4 Python/3.4.2
+    Date: Sat, 18 Jul 2015 05:09:34 GMT
+
+    {
+      "error": {
+        "type": "missing_fields",
+        "fields": [
+          "due"
+        ]
+      },
+      "message": "The input is missing one or more parameters."
+    }
+
+As expected, this time we get a more detailed error response.
+
+Here's a little exercise for you; why don't you go ahead and update the app
+to provide detailed messages for when the client sends an unrecognized field,
+and for when the client sends badly formed data for the ``due`` field?
+
+.. [#f1] This can change in very specific circumstances. In particular, if you
+    supply an ``error_handler`` argument to the application constructor, then
+    this method is no longer available; you would have to check for specific
+    exceptions in the function body of your custom ``error_handler`` instead.
+
+Wrapping up
+-----------
+
+Whew! Here's the full source code for the app we've built:
+
+.. literalinclude:: ../examples/taskman.py
+    :language: python
+
+We've designed an built a functioning API, but we've only used a subset
+of what Findig has to offer. Have a look at 
+:class:`~findig.tools.counter.Counter` for a tool that counts hits to your
+resources (this is more useful than it sounds upfront). The 
+:mod:`findig.tools.protector` module provides utilies for restrict access to
+your API to authorized users/clients.
+
+If you're interested in supporting custom content-types, rather than just
+JSON, have a look at :ref:`custom-applications`. The process is very similar
+to the custom error handler we built in this tutorial.
+

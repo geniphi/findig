@@ -229,6 +229,7 @@ a resource through it's route::
 ``405: METHOD NOT ALLOWED``, even though we have a *write* operation
 defined.
 
+.. _custom-applications:
 
 Custom applications
 -------------------
