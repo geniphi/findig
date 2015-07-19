@@ -1,12 +1,9 @@
 Installation
 ============
 
-.. note:: Findig is pre-release software and isn't currently installable
-          by PyPI. Currently the only way to install Findig is using
-          its development version.
-
 Installing Findig is easy, as long as you have the right tool for the
-job. Make sure you have `pip installed`_ before proceeding.
+job. Make sure you have `pip installed`_ before proceeding (Pip should
+be available by default in Python 3.4 or later).
 
 .. _`pip installed`: http://pip.readthedocs.org/en/latest/installing.html
 
@@ -14,6 +11,10 @@ Supported Python versions
 -------------------------
 
 Findig currently supports Python 3.4.
+
+To install from PyPI, run this command::
+
+    $ pip install findig
 
 Installing the development version
 ----------------------------------
@@ -49,6 +50,9 @@ Here's a list of all the supported extra features:
 Feature name Description               Installed Requirements
 ============ ========================= ======================
 redis        Redis data set support    redis
+------------ ------------------------- ----------------------
+sql          Support for SQLAlchemy    SQLAlchemy
+             tables and data sets       
 ============ ========================= ======================
 
 Getting the source code
@@ -63,6 +67,6 @@ from a command shell::
 Alternatively, you can download a source tarball_ or zipball_, both of 
 which will contain the latest source code from the repository.
 
-.. _zipball: https://github.com/geniphi/findig/zipball/master
-.. _tarball: https://github.com/geniphi/findig/tarball/master
+.. _zipball: https://github.com/geniphi/findig/zipball/develop
+.. _tarball: https://github.com/geniphi/findig/tarball/develop
 .. _github: https://github.com/geniphi/findig
