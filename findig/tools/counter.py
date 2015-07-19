@@ -488,3 +488,6 @@ class _HitLog(AbstractLog):
 
     def __repr__(self):
         return "HitLog({})".format(self.count())
+
+
+Hit = namedtuple("Hit", "time parts")

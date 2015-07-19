@@ -34,6 +34,13 @@ def test_totals(client, counter):
     assert counter.hits().count(method='put') == 0
     assert counter.hits().count(foo='bar') == 0
 
+def test_hit_iteration(client, counter):
+    for i in range(100):
+        client.get("/")
+
+    hits = list(counter.hits())
+    assert len(hits) == 100
+
 def test_callbacks(client, counter):
     args = []
     @counter.every(2, after=2, until=6)
@@ -53,7 +60,7 @@ def test_callbacks(client, counter):
     assert counter.hits().count() == 9
     assert len(args) == 2
     assert args == [{'name': 'TJ'}, {'name': 'TJD'}]
-   
+
 def test_callbacks_with_partitions(client, counter):
     results = {'any_team': [], 'specific_name': []}
 
