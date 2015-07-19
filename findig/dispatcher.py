@@ -11,17 +11,19 @@ from findig.context import ctx
 from findig.resource import Resource, AbstractResource
 from findig.utils import DataPipe
 
+
 class Dispatcher:
     """
     A :class:`Dispatcher` creates resources and routes requests to them.
 
     :param formatter: A function that converts resource data to a string
-        string suitable for output. It returns a 2-tuple: *(mime_type, output)*.
-        If not given, a generic :class:`findig.content.Formatter` is used.
+        string suitable for output. It returns a 2-tuple:
+        *(mime_type, output)*. If not given, a generic
+        :class:`findig.content.Formatter` is used.
     :param parser: A function that parses request input and returns a
         2-tuple: *(mime_type, data)*. If not given, a generic
         :class:`findig.content.Parser`.
-    :param error_handler: A function that converts an exception to a 
+    :param error_handler: A function that converts an exception to a
         :class:`Response <werkzeug.wrappers.BaseResponse>`. If not given,
         a generic :class:`findig.content.ErrorHandler` is used.
     :param pre_processor: A function that is called on request data just
@@ -39,7 +41,7 @@ class Dispatcher:
     response_class = Response
 
     def __init__(self, formatter=None, parser=None, error_handler=None,
-                       pre_processor=None, post_processor=None):
+                 pre_processor=None, post_processor=None):
         self.route = singledispatch(self.route)
         self.route.register(str, self.route_decorator)
 
@@ -50,7 +52,7 @@ class Dispatcher:
 
         if parser is None:
             parser = Parser()
-        
+
         if formatter is None:
             formatter = Formatter()
             formatter.register('text/plain', str, default=True)
@@ -58,8 +60,12 @@ class Dispatcher:
         self.formatter = formatter
         self.parser = parser
         self.error_handler = error_handler
-        self.pre_processor = DataPipe() if pre_processor is None else pre_processor
-        self.post_processor = DataPipe() if post_processor is None else post_processor
+        self.pre_processor = DataPipe() \
+            if pre_processor is None \
+            else pre_processor
+        self.post_processor = DataPipe() \
+            if post_processor is None \
+            else post_processor
 
         self.resources = {}
         self.routes = []
@@ -78,9 +84,8 @@ class Dispatcher:
         del headers['Content-Type']
         del headers['Content-Length']
 
-        return Response(http_err.description, status=response.status, 
+        return Response(http_err.description, status=response.status,
                         headers=response.headers)
-
 
     def resource(self, wrapped=None, **args):
         """
@@ -91,9 +96,9 @@ class Dispatcher:
                         this should be a function that takes named
                         route arguments for the resource and returns a
                         dictionary with the resource's data.
-               
+
         The keyword arguments are passed on directly to the constructor
-        for :class:`Resource`, with the exception that *name* will default to 
+        for :class:`Resource`, with the exception that *name* will default to
         {module}.{name} of the wrapped function if not given.
 
         This method may also be used as a decorator factory::
@@ -105,7 +110,7 @@ class Dispatcher:
         In this case the decorated function will be replaced by a
         :class:`Resource` instance that wraps it. Any keyword arguments
         passed to the decorator factory will be handed over to the
-        :class:`Resource` constructor. If no keyword arguments 
+        :class:`Resource` constructor. If no keyword arguments
         are required, then ``@resource`` may be used instead of
         ``@resource()``.
 
@@ -139,12 +144,12 @@ class Dispatcher:
         :param rulestr: A URL rule, according to
                         :ref:`werkzeug's specification <werkzeug:routing>`.
         :type rulestr: str
-        
+
         See :py:class:`werkzeug.routing.Rule` for valid rule parameters.
 
         This method can also be used as a decorator factory to assign
         route to resources using declarative syntax::
-        
+
             @route("/index")
             @resource(name='index')
             def index_generator():
@@ -159,7 +164,7 @@ class Dispatcher:
         return resource
 
     def route_decorator(self, rulestr, **ruleargs):
-        #See :meth:`route`.
+        # See :meth:`route`.
         def decorator(resource):
             # Collect the rule
             resource = self.route(resource, rulestr, **ruleargs)
@@ -196,10 +201,13 @@ class Dispatcher:
             supported_methods = resource.get_supported_methods()
             restricted_methods = set(
                 map(str.upper, args.get('methods', supported_methods)))
-            args['methods'] = supported_methods.intersection(restricted_methods)
+            args['methods'] = supported_methods.intersection(
+                restricted_methods)
             # warn about unsupported methods
-            
-            unsupported_methods = list(set(restricted_methods) - supported_methods)
+
+            unsupported_methods = list(
+                set(restricted_methods) - supported_methods
+            )
             if unsupported_methods:
                 warnings.warn(
                     "Error building rule: {string}\n"
@@ -226,12 +234,14 @@ class Dispatcher:
         url_values = ctx.url_values
         resource = ctx.resource
 
-        ctx.response = response = {'headers': {}} # response arguments
+        ctx.response = response = {'headers': {}}  # response arguments
 
         try:
             data = resource.handle_request(request, url_values)
-            response = {k:v for k,v in response.items() 
-                        if k in ('status', 'headers')}
+            response = {
+                k: v for k, v in response.items()
+                if k in ('status', 'headers')
+            }
 
             if isinstance(data, (self.response_class, BaseResponse)):
                 return data
@@ -266,5 +276,5 @@ class Dispatcher:
             if resource.name in self.resources:
                 routed.add(resource.name)
         else:
-            return list(map(self.resources.get, 
+            return list(map(self.resources.get,
                             set(self.resources) - routed))

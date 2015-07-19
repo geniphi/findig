@@ -63,18 +63,22 @@ class CustomEncoder(json.JSONEncoder):
 class JSONMixin:
     def __init__(self, indent=None, encoder_cls=None, **args):
         self.indent = indent
-        self.encoder_cls = CustomEncoder if encoder_cls is None else encoder_cls
+        self.encoder_cls = CustomEncoder \
+            if encoder_cls is None \
+            else encoder_cls
         super().__init__(**args)
 
         self.error_handler = ErrorHandler()
         self.error_handler.register(BaseException, self._respond_error)
         self.error_handler.register(HTTPException, self._respond_http_error)
-        
+
         self.formatter = Formatter()
-        self.formatter.register('application/json', self.serialize, default=True)
+        self.formatter.register(
+            'application/json', self.serialize, default=True)
 
         self.parser = Parser()
-        self.parser.register('application/json', self.deserialize, default=True)
+        self.parser.register(
+            'application/json', self.deserialize, default=True)
 
     def _respond_error(self, err):
         # TODO: log error
@@ -89,7 +93,7 @@ class JSONMixin:
         del headers['Content-Length']
 
         return self.make_response({"message": http_err.description},
-                                  status=response.status, 
+                                  status=response.status,
                                   headers=response.headers)
 
     def make_response(self, data, **args):
@@ -138,14 +142,14 @@ class App(JSONMixin, App_):
     output ``application/json`` data by default and convert errors to
     ``application/json`` responses.
 
-    :param indent: The number of spaces to indent by when outputting 
+    :param indent: The number of spaces to indent by when outputting
         JSON. By default, no indentation is used.
     :param encoder_cls: A :class:`json.JSONEncoder` subclass that should be
         used to serialize data into JSON. By default, an encoder that
         converts all mappings to JSON objects and all other iterables to
         JSON lists in addition to the normally supported simplejson types
         (int, float, str) is used.
-    :param autolist: Same as the *autolist* parameter in 
+    :param autolist: Same as the *autolist* parameter in
         :class:`findig.App`.
 
     """

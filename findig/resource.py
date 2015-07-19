@@ -34,8 +34,8 @@ class AbstractResource(metaclass=abc.ABCMeta):
     In addition to the methods defined here, resources should have a
     name attribute, which is a string that uniquely identifies it within
     the app. Optional *parser* and *formatter* attributes corresponding to
-    :class:`findig.content.AbstractParser` and 
-    :class:`finding.content.AbstractFormatter` instances respectively, 
+    :class:`findig.content.AbstractParser` and
+    :class:`finding.content.AbstractFormatter` instances respectively,
     will also be used if added.
     """
 
@@ -44,14 +44,14 @@ class AbstractResource(metaclass=abc.ABCMeta):
         """
         Return a Python set of HTTP methods to be supported by the resource.
         """
-        
+
     @abc.abstractmethod
     def handle_request(self, request, url_values):
         """
         Handle a request to one of the resource URLs.
 
         :param request: An object encapsulating information about the
-                        request. It is the same as 
+                        request. It is the same as
                         :py:data:`findig.context.request`.
         :type request: :class:`~findig.wrappers.Request`, which
                        in turn is a subclass of
@@ -117,7 +117,8 @@ class AbstractResource(metaclass=abc.ABCMeta):
 
 class Resource(AbstractResource):
     """
-    Resource(wrapped=None, lazy=None, name=None, model=None, formatter=None, parser=None, error_handler=None)
+    Resource(wrapped=None, lazy=None, name=None, model=None,
+    formatter=None, parser=None, error_handler=None)
 
     A concrete implementation of :class:`AbstractResource`.
 
@@ -127,7 +128,7 @@ class Resource(AbstractResource):
                         typically returns the data for that particular
                         resource.
     :keyword lazy: Indicates whether the wrapped resource function
-                    returns lazy resource data; i.e. data is not 
+                    returns lazy resource data; i.e. data is not
                     retrieved when the function is called, but at some
                     later point when the data is accessed. Setting this
                     allows Findig to evaluate the function's return
@@ -140,7 +141,7 @@ class Resource(AbstractResource):
     :keyword model: A data-model that describes how to read and write
                     the resource's data. By default, a generic
                     :class:`findig.data_model.DataModel` is attached.
-    :keyword formatter: A function that should be used to format the 
+    :keyword formatter: A function that should be used to format the
                         resource's data. By default, a generic
                         :class:`findig.content.Formatter` is attached.
     :keyword parser: A function
@@ -152,7 +153,7 @@ class Resource(AbstractResource):
         By default, a :class:`findig.content.ErrorHandler` is used.
 
     """
-    def __init__(self, **args):        
+    def __init__(self, **args):
         self.name = args.get('name', str(uuid.uuid4()))
         self.model = args.get('model', DataModel())
         self.lazy = args.get('lazy', False)
@@ -162,10 +163,10 @@ class Resource(AbstractResource):
         if 'error_handler' not in args:
             args['error_handler'] = eh = ErrorHandler()
             args['error_handler'].register(LookupError, self._on_lookup_err)
-            
+
         self.error_handler = args.get('error_handler')
 
-        wrapped = args.get('wrapped', lambda **_: {})        
+        wrapped = args.get('wrapped', lambda **_: {})
         functools.update_wrapper(self, wrapped)
 
     def _on_lookup_err(self, err):
@@ -198,7 +199,7 @@ class Resource(AbstractResource):
                 # so we can get a pretend data-set for inspection.
                 argspec = inspect.getfullargspec(self.__wrapped__)
                 wrapper_args = {
-                    name : None for name in
+                    name: None for name in
                     itertools.chain(argspec.args, argspec.kwonlyargs)
                     }
 
@@ -238,19 +239,20 @@ class Resource(AbstractResource):
     def handle_request(self, request, wrapper_args):
         """
         Dispatch a request to a resource.
-        
+
         See :py:meth:`AbstractResource.handle_request` for accepted
         parameters.
-        
+
         """
         method = request.method.upper()
         try:
             model = self.compose_model(wrapper_args)
             handler = self._extract_handler(request, method, model)
 
-            args, kwargs = validate_arguments(handler.func, handler.args, wrapper_args)
+            args, kwargs = validate_arguments(
+                handler.func, handler.args, wrapper_args)
             return handler.func(*args, **kwargs)
-            
+
         except BaseException as err:
             return self.error_handler(err)
 
@@ -270,8 +272,8 @@ class Resource(AbstractResource):
             return partial(model['write'], request.input)
 
         else:
-            raise ValueError    
-        
+            raise ValueError
+
     def collection(self, wrapped=None, **args):
         """
         Create a :class:`Collection` instance
@@ -290,10 +292,10 @@ class Resource(AbstractResource):
             def mycollection(self):
                 pass
 
-        The decorated function will be replaced in its namespace by a 
+        The decorated function will be replaced in its namespace by a
         :class:`Collection` that wraps it. Any keyword arguments
         passed to the decorator factory will be handed over to the
-        :class:`Collection` constructor. If no keyword arguments 
+        :class:`Collection` constructor. If no keyword arguments
         are required, then ``@collection`` may be used instead of
         ``@collection()``.
 
@@ -320,7 +322,7 @@ class Collection(Resource):
     :param of: The type of resource to be collected.
     :type of: :class:`Resource`
     :param include_urls: If ``True``, the collection will attempt to
-        insert a ``url`` field on each of the child items that it returns. 
+        insert a ``url`` field on each of the child items that it returns.
         Note that this only works if the child already has enough information
         in its fields to build a url (i.e., if the URL for the child
         contains an ``:id`` fragment, then the child must have an id
@@ -341,12 +343,11 @@ class Collection(Resource):
     def get_supported_methods(self, model=None):
         model = self.compose_model() if model is None else model
         supported = super().get_supported_methods(model)
-        
+
         if 'make' in model:
             supported.add('POST')
 
         return supported
-
 
     def _extract_handler(self, request, method, model):
         if method == 'POST':
@@ -391,8 +392,10 @@ class Collection(Resource):
         child, bind_args = self.collects
         if not isinstance(data, Mapping):
             data = data.__dict__
-        args = {(bind_args[k] if k in bind_args else k):data[k]
-                for k in data}
+        args = {
+            (bind_args[k] if k in bind_args else k): data[k]
+            for k in data
+        }
         try:
             url = url_adapter.build(child.name, args, append_unknown=False)
         except URLBuildError:

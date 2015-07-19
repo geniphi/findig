@@ -24,7 +24,7 @@ ctx = Local()
 #: The :py:class:`findig.App` instance that responded to the request.
 app = ctx('app')
 
-#: An object representing the current request and a subclass of 
+#: An object representing the current request and a subclass of
 #: :py:data:`findig.App.request_class`.
 request = ctx('request')
 
@@ -40,10 +40,10 @@ dispatcher = ctx('dispatcher')
 #: request is directed to.
 resource = ctx('resource')
 
-#: A dictionary of values that have been extracted from the request path 
+#: A dictionary of values that have been extracted from the request path
 #: by matching it against a URL rule.
 url_values = ctx('url_values')
 
 
-__all__ = ['ctx', 'app', 'request', 'url_adapter', 
+__all__ = ['ctx', 'app', 'request', 'url_adapter',
            'dispatcher', 'resource', 'url_values']

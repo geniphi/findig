@@ -43,7 +43,7 @@ class RedisObj(MutableRecord):
         self.itemkey = key
         self.collection = collection
         self.include_id = include_id
-        self.r = (collection.r 
+        self.r = (collection.r
                   if collection is not None
                   else redis.StrictRedis())
         self.inblock = False
@@ -53,7 +53,7 @@ class RedisObj(MutableRecord):
             name="redis-object" if self.collection is None else "item",
             key=self.itemkey,
             suffix="" if self.collection is None
-                      else " of {!r}".format(self.collection)
+                   else " of {!r}".format(self.collection)
         )
 
     def start_edit_block(self):
@@ -67,7 +67,7 @@ class RedisObj(MutableRecord):
 
         ret = self.r.execute()
         self.r = client
-        
+
         data = dict(self)
 
         if self.collection is not None:
@@ -79,7 +79,6 @@ class RedisObj(MutableRecord):
 
         self.invalidate(new_data=data)
         self.inblock = False
-        
 
     def patch(self, add_data, remove_fields, replace=False):
         p = self.r.pipeline()
@@ -97,7 +96,7 @@ class RedisObj(MutableRecord):
         p.execute()
 
         if self.inblock:
-            data = {k: old_data[k] for k in old_data 
+            data = {k: old_data[k] for k in old_data
                     if k not in remove_fields}
             data.update(add_data)
 
@@ -113,8 +112,10 @@ class RedisObj(MutableRecord):
         data = self.r.hgetall(self.itemkey)
         if self.include_id:
             data[b'id'] = self.id.encode("utf8")
-        return {k.decode('utf8'):literal_eval(v.decode('utf8')) 
-                for k,v in data.items()}
+        return {
+            k.decode('utf8'): literal_eval(v.decode('utf8'))
+            for k, v in data.items()
+        }
 
     def delete(self):
         if self.collection is not None:
@@ -125,8 +126,10 @@ class RedisObj(MutableRecord):
 
     @staticmethod
     def store(data, key, client):
-        data = {k: repr(v).encode('utf8')
-                for k,v in data.items()}
+        data = {
+            k: repr(v).encode('utf8')
+            for k, v in data.items()
+        }
 
         return client.hmset(key, data)
 
@@ -134,7 +137,7 @@ class RedisObj(MutableRecord):
     def id(self):
         return self.itemkey.rpartition(":")[-1]
 
-            
+
 class RedisSet(MutableDataSet):
     """
     RedisSet(key=None, client=None, index_size=4)
@@ -163,9 +166,9 @@ class RedisSet(MutableDataSet):
         self.colkey = key
         self.itemkey = self.colkey + ':item:{id}'
         self.indkey = self.colkey + ':index'
-        self.incrkey =  self.colkey + ':next-id'
+        self.incrkey = self.colkey + ':next-id'
         self.genid = args.pop(
-            'generate_id', 
+            'generate_id',
             lambda d: self.r.incr(self.incrkey)
         )
         self.indsize = args.pop('index_size', 4)
@@ -178,8 +181,10 @@ class RedisSet(MutableDataSet):
         if self.filterby:
             name = "filtered-redis-view"
             suffix = "|{}".format(
-                ",".join("{}={!r}".format(k,v) 
-                         for k,v in self.filterby.items())
+                ",".join(
+                    "{}={!r}".format(k, v)
+                    for k, v in self.filterby.items()
+                )
             )
         else:
             name = "redis-set"
@@ -193,12 +198,13 @@ class RedisSet(MutableDataSet):
         """Query the set and iterate through the elements."""
         # If there is a filter, and it is completely encapsulated by
         # our index, we can use that to iter through the items
-        
+
         tokens = self.__buildindextokens(self.filterby, raise_err=False)
         if tokens:
             # Pick an index to scan
             token = random.choice(tokens)
-            id_blobs = self.r.zrangebylex(self.indkey, token.value, token.value)
+            id_blobs = self.r.zrangebylex(
+                self.indkey, token.value, token.value)
             ids = [bs[self.indsize:] for bs in id_blobs]
 
         else:
@@ -249,7 +255,7 @@ class RedisSet(MutableDataSet):
         tokens = self.__buildindextokens(data, id, False)
         for token in tokens:
             self.r.zrem(
-                self.indkey, 
+                self.indkey,
                 token.value + id.encode('ascii')
             )
 
@@ -306,13 +312,14 @@ class RedisSet(MutableDataSet):
 
     def __buildindextokens(self, data, generated_id=None, raise_err=True):
         index = []
-       
+
         for ind in self.indexby:
             mapping = {}
             for field in ind:
                 if field in data:
                     mapping[field] = data[field]
-                elif field == 'id' and generated_id is not None: # special case
+                elif field == 'id' and generated_id is not None:
+                    # special case
                     mapping[field] = generated_id
                 else:
                     # Can't use this index
@@ -325,7 +332,7 @@ class RedisSet(MutableDataSet):
                 raise ValueError("Could not index this data. "
                                  "This may be due to insuffient index keys "
                                  "or incomplete data."
-                                )
+                                 )
             else:
                 return []
         else:

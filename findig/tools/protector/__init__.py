@@ -17,7 +17,8 @@ class GateKeeper(metaclass=ABCMeta):
     @abstractmethod
     def check_auth(self):
         """
-        Try to perform an authorization check using the request context variables.
+        Try to perform an authorization check using the request context
+        variables.
 
         Perform the authorization check using whatever mechanism that the
         gatekeeper's authorization is handled. If authorization fails, then
@@ -33,12 +34,16 @@ class GateKeeper(metaclass=ABCMeta):
         """Return the username/id of the user that authorized the grant."""
 
     def get_scopes(self, grant):
-        """Return a list of scopes that the grant is authorized with. (Optional)"""
+        """
+        Return a list of scopes that the grant is authorized with. (Optional)
+        """
         # By default the gatekeeper will not consider scopes
         return [scopeutil.ANY]
 
     def get_clientid(self, grant):
-        """Return the client that sent the request to the grant. (Optional)"""
+        """
+        Return the client that sent the request to the grant. (Optional)
+        """
         # By default the gatekeeper doesn't grant scope
         return None
 
@@ -47,16 +52,17 @@ class DefaultGateKeeper(GateKeeper):
     """
     A concrete :class:`GateKeeper` that does not perform any authorizations.
 
-    When used with a protector, this gatekeeper will result in all guarded resources being
-    blocked. It's intended to be replaced with a different implementation of the
-    GateKeeper class.
+    When used with a protector, this gatekeeper will result in all guarded
+    resources being blocked. It's intended to be replaced with a different
+    implementation of the GateKeeper class.
     """
     def check_auth(self):
         import warnings
         warnings.warn("The protector guarding this resource is using the "
                       "default gate keeper, which denies all requests to this "
                       "resource. If a different behavior is desired (likely), "
-                      "please configure the protector with a different gatekeeper.")
+                      "please configure the protector with a different "
+                      "gatekeeper.")
         raise Unauthorized
 
     def get_username(self, grant):
@@ -83,9 +89,17 @@ class Protector:
         resources.
     """
 
-    _default_permissions = {"get": "r", "post": "c", "patch": "cu", "delete": "d", "head": "r"}
+    _default_permissions = {
+        "get": "r",
+        "post": "c",
+        "patch": "cu",
+        "delete": "d",
+        "head": "r"
+    }
 
-    def __init__(self, app=None, subscope_separator="/", gatekeeper=DefaultGateKeeper()):
+    def __init__(self, app=None, subscope_separator="/",
+                 gatekeeper=DefaultGateKeeper()):
+
         self._subsep = subscope_separator
         self._gatekeeper = gatekeeper
         self._guard_specs = {}
@@ -101,12 +115,12 @@ class Protector:
             to the protector's constructor.
 
         By attaching the protector to a findig application, the protector is
-        enabled to intercept requests made to the application, performing authorization
-        checks as needed.
+        enabled to intercept requests made to the application, performing
+        authorization checks as needed.
 
-        :param app: A findig application whose requests the protector will 
+        :param app: A findig application whose requests the protector will
             intercept.
-        :type app: :class:`findig.App`, or a subclass like 
+        :type app: :class:`findig.App`, or a subclass like
             :class:`findig.json.App`.
 
         """
@@ -116,18 +130,18 @@ class Protector:
         """
         guard(resource[, scope[, scope [, ...]]])
 
-        Guard a resource against unauthorized access. If given, the 
+        Guard a resource against unauthorized access. If given, the
         :token:`scopes <resource_scope>`
         will be used to protect the resource (similar to oauth) such that
-        only requests with the appropriate :token:`scope <auth_scope>` 
+        only requests with the appropriate :token:`scope <auth_scope>`
         will be allowed through.
 
         If this function is called more than once, then a grant by *any*
         of the specifications will allow the request to access the resource.
         For example::
 
-            # This protector will allow requests to res with BOTH 
-            # "user" and "friends" scope, but it will also allow 
+            # This protector will allow requests to res with BOTH
+            # "user" and "friends" scope, but it will also allow
             # requests with only "foo" scope.
             protector.guard(res, "user", "friends")
             protector.guard(res, "foo")
@@ -153,13 +167,14 @@ class Protector:
             @app.route("/baz")
             def baz():
                 # This resource is guarded with both "user/phone_numbers" and
-                # "user/contact" scope, so requests must be authorized with both
-                # to access this resource.
+                # "user/contact" scope, so requests must be authorized with
+                # both to access this resource.
                 pass
 
-            # NOTE: Depending on the value passed for 'subscope_separator' to the
-            # protector's constructor, authenticated requests authorized with "user" scope
-            # will also be allowed to access all of these resources (default behavior).
+            # NOTE: Depending on the value passed for 'subscope_separator'
+            # to the protector's constructor, authenticated requests
+            # authorized with "user" scope will also be allowed to access
+            # all of these resources (default behavior).
 
         """
         def add_resource(resource, scopes=None):
@@ -189,39 +204,47 @@ class Protector:
             auth_info['user'] = self._gatekeeper.get_username(grant)
             auth_info['client'] = self._gatekeeper.get_clientid(grant)
 
-            permissions = self._default_permissions.get(request.method.lower(), "crud")
-            
+            permissions = self._default_permissions.get(
+                request.method.lower(), "crud")
+
             # Try to find a guard who will let the request through
             for scope_guard in self._guard_specs[resource.name]:
                 for scope in scope_guard:
                     # Affix the request permissions to the required scope
                     scope = "{}+{}".format(scope, permissions)
 
-                    if not scopeutil.find_granting_scope(scope, scopes, self._subsep):
-                        # This guard is looking for a scope that the request
-                        # can't satisfy, so give up on the guard.
+                    if not scopeutil.find_granting_scope(
+                            scope, scopes, self._subsep):
+                        # This guard is looking for a scope that the
+                        # request can't satisfy, so give up on the guard.
                         break
                 else:
-                    # The request satisfies all the scopes that the guard is looking
-                    # for, so stop looking.
+                    # The request satisfies all the scopes that the guard
+                    # is looking for, so stop looking.
                     break
             else:
-                # Unable to find a guard that will let the request through with the
-                # given scope, so raise an error.
+                # Unable to find a guard that will let the request through
+                # with the given scope, so raise an error.
                 raise InsufficientScope(self._guard_specs[resource.name])
-            
-        # Yielding this value will place it on the request context with the same name
-        # as this function: 'findig.context.ctx.auth'.
+
+        # Yielding this value will place it on the request context with the
+        # same name as this function: 'findig.context.ctx.auth'.
         yield auth_info
 
     @property
     def authenticated_user(self):
-        """Get the username/id of the authenticated user for the current request."""
+        """
+        Get the username/id of the authenticated user for the current
+        request.
+        """
         return ctx.auth['user']
 
     @property
     def authenticated_client(self):
-        """Get the client id of the authenticated client for the current request, or None."""
+        """
+        Get the client id of the authenticated client for the current
+        request, or None.
+        """
         return ctx.auth['client']
 
     @property
@@ -241,23 +264,27 @@ class BasicProtector(GateKeeper, Protector):
       used.
 
     * Credentials are transmitted with *each request*. It requires that clients
-      either store user credentials, or prompt the user for their credentials at
-      frequent intervals (possibly every request).
+      either store user credentials, or prompt the user for their credentials
+      at frequent intervals (possibly every request).
 
-    * This protector offers no scoping support; a grant from this protector 
+    * This protector offers no scoping support; a grant from this protector
       allows unlimited access to any resource that it guards.
 
     """
-    def __init__(self, app=None, subscope_separator="/", auth_func=None, realm="guarded"):
-        super().__init__(app=app, subscope_separator=subscope_separator, gatekeeper=self)
+    def __init__(self, app=None, subscope_separator="/",
+                 auth_func=None, realm="guarded"):
+
+        super().__init__(app=app, subscope_separator=subscope_separator,
+                         gatekeeper=self)
         self._fauth = auth_func
         self._realm = realm
 
     def auth_func(self, fauth):
         """Supply an application-defined function that performs authentication.
 
-        The function has the signature ``fauth(username:str, password:str) -> bool``
-        and should return whether or not the credentials given authenticate 
+        The function has the signature
+        ``fauth(username:str, password:str) -> bool``
+        and should return whether or not the credentials given authenticate
         successfully.
 
         auth_func is usable as a decorator::
@@ -278,23 +305,33 @@ class BasicProtector(GateKeeper, Protector):
 
         if self._fauth is None:
             import warnings
-            warnings.warn("The HTTP basic auth protector doesn't know how to validate "
-                          "credentials. Please supply it with an auth_func parameter. "
-                          "See the documentation for "
+            warnings.warn("The HTTP basic auth protector doesn't know how to "
+                          "validate credentials. Please supply it with an "
+                          "auth_func parameter. See the documentation for "
                           "findig.tools.protector.BasicProtector.auth_func.")
 
         if auth and self._fauth(auth.username, auth.password):
             return auth.username
 
         else:
-            realm = self._realm(resource) if isinstance(self._realm, Callable) else self._realm
+            realm = self._realm(resource) \
+                if isinstance(self._realm, Callable) \
+                else self._realm
             response = Unauthorized().get_response(request)
-            response.headers["WWW-Authenticate"] = "Basic realm=\"{}\"".format(realm)
+            response.headers["WWW-Authenticate"] = \
+                "Basic realm=\"{}\"".format(realm)
             raise Unauthorized(response=response)
 
-    def get_username(self, grant:"This is the username"):
+    def get_username(self, grant: "This is the username"):
         return grant
 
 
 class InsufficientScope(Forbidden):
-    pass
+    """
+    This exception is raised by :class:`~findig.tools.protector.Protector`
+    when a client tries to access a resource that it does not present
+    sufficient authorization for.
+
+    It's a subclass of :class:`werkzeug.exceptions.Forbidden`, and if allowed
+    to propagate will send a ``403 FORBIDDEN` response automatically.
+    """

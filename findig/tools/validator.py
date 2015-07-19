@@ -2,11 +2,11 @@
 The :mod:`findig.tools.validator` module exposes the :class:`Validator`
 which can be used to validate an application or request's input data.
 
-Validators work by specifying a converter for each field in the 
+Validators work by specifying a converter for each field in the
 input data to be validated::
 
     validator = Validator(app)
-    
+
     @validator.enforce(id=int)
     @app.route("/test")
     def resource():
@@ -16,7 +16,7 @@ input data to be validated::
     def write_resource(data):
         assert isinstance(data['id'], int)
 
-If the converter fails to convert the field's value, then a 
+If the converter fails to convert the field's value, then a
 ``400 BAD REQUEST`` error is sent back.
 
 Converters don't have to be functions; they can be a singleton list
@@ -33,10 +33,10 @@ be a list of items for which that converter works::
         for id in data['ids']:
             assert isinstance(id, int)
 
-Converters can also be string specifications corresponding to a 
+Converters can also be string specifications corresponding to a
 pre-registered converter and its arguments. All of
-werkzeug's 
-`builtin converters and their arguments`__ 
+werkzeug's
+`builtin converters and their arguments`__
 and their arguments are pre-registered and thus usable::
 
     @validator.enforce(foo='any(bar,baz)', cid='string(length=3)')
@@ -74,12 +74,14 @@ _converter_re = re.compile(r'''
         (?:\((?P<args>.*?)\))?                  # converter args
 ''', re.VERBOSE | re.UNICODE)
 
+
 class converter_spec(namedtuple('converter_spec', 'name args')):
     def __repr__(self):
         if self.args is None:
             return repr(self.name)
         else:
             return repr("{}({})".format(self.name, self.args))
+
 
 class Validator:
     """
@@ -89,13 +91,14 @@ class Validator:
     :type app: :class:`findig.App`
     :param include_collections: If ``True``, any validation rules set on any
         resource will also be used for any :class:`~findig.resource.Collection`
-        that collects it. Even when this argument is set, inherited rules can still
-        be overridden by declaring rules specifically for the collection.
+        that collects it. Even when this argument is set, inherited rules can
+        still be overridden by declaring rules specifically for the collection.
 
-    Validators are only capable of validating request input data (i.e., 
+    Validators are only capable of validating request input data (i.e.,
     data received as part of the request body). To validate URL fragments,
-    consider using *converters* in your URL rules. See 
-    `werkzeug's routing reference <http://werkzeug.pocoo.org/docs/0.10/routing/#rule-format>`_.
+    consider using *converters* in your URL rules. See
+    werkzeug's `routing reference \
+<http://werkzeug.pocoo.org/docs/0.10/routing/#rule-format>`_.
 
     Validators work by specifying converters for request input fields.
     If a converter is specified, the validator will use it to convert the
@@ -149,7 +152,7 @@ class Validator:
               ...
             ValueError: boy, that's handy.
 
-        If you supply a template, it is used to construct a return 
+        If you supply a template, it is used to construct a return
         value by doing backslash substitution::
 
             >>> func = Validator.regex("(male|female)", template=r"Gender: \1")
@@ -159,10 +162,11 @@ class Validator:
             Traceback (most recent call last):
               ...
             ValueError: alien
-            
+
         """
 
         regexp = re.compile(pattern, flags)
+
         def match_string(s):
             m = regexp.fullmatch(s)
             if m is None:
@@ -180,7 +184,7 @@ class Validator:
 
         Create a function that validates a date field.
 
-        :param format: A date/time format according to 
+        :param format: A date/time format according to
             :meth:`datetime.datetime.strptime`. If more than one formats are
             passed in, the generated function will try each format in order
             until one of them works on the field (or until there are no formats
@@ -190,18 +194,22 @@ class Validator:
 
             >>> func = Validator.date("%Y-%m-%d %H:%M:%S%z")
             >>> func("2015-07-17 09:00:00+0400")
-            datetime.datetime(2015, 7, 17, 9, 0, tzinfo=datetime.timezone(datetime.timedelta(0, 14400)))
+            datetime.datetime(2015, 7, 17, 9, 0, \
+tzinfo=datetime.timezone(datetime.timedelta(0, 14400)))
             >>> func("not-a-date")
             Traceback (most recent call last):
               ...
-            ValueError: time data 'not-a-date' does not match format '%Y-%m-%d %H:%M:%S%z'
+            ValueError: time data 'not-a-date' does not match format \
+'%Y-%m-%d %H:%M:%S%z'
 
             >>> func = Validator.date("%Y-%m-%d %H:%M:%S%z", "%Y-%m-%d")
             >>> func("2015-07-17")
             datetime.datetime(2015, 7, 17, 0, 0)
 
         """
-        formats = [format]; formats.extend(alternatives)
+        formats = [format]
+        formats.extend(alternatives)
+
         funcs = [lambda s: datetime.strptime(s, fmt) for fmt in formats]
         return partial(tryeach, funcs)
 
@@ -226,6 +234,7 @@ class Validator:
 
         """
         FIELD_REGEX = re.compile(r"^(\**)\1(\*?)")
+
         def conv_field(field_name):
             """conv_field("*field") -> ("field", FIELD-IS-REQUIRED)"""
             m = FIELD_REGEX.match(field_name)
@@ -261,13 +270,13 @@ class Validator:
 
         *   :class:`collections.abc.Callable` (including functions) -- This can
             be a simple type such as :class:`int` or :class:`uuid.UUID`, but
-            any function or callable can work. It should take a field value and 
+            any function or callable can work. It should take a field value and
             convert it to a value of the desired type. If it throws an error,
-            then findig will raise a :class:`~werkzeug.exceptions.BadRequest` 
+            then findig will raise a :class:`~werkzeug.exceptions.BadRequest`
             exception.
 
             Example::
-       
+
                 # Converts an int from a valid string base 10 representation:
                 validator.enforce(resource, game_id=int)
 
@@ -285,7 +294,7 @@ class Validator:
                 :noindex:
 
                 This converter will accept a string.
-            
+
                 :param length: If given, it will indicate a fixed length field.
                 :param minlength: The minimum allowed length for the field.
                 :param maxlength: The maximum allowed length for the field.
@@ -344,7 +353,7 @@ class Validator:
 
             .. important:: Converter specifications in this form **cannot**
                match strings that contain forward slashes. For example,
-               *'string(length=2)'* will fail to match *'/e'* and 
+               *'string(length=2)'* will fail to match *'/e'* and
                *'any(application/json,html)'* will fail to
                match *'application/json'*.
 
@@ -403,7 +412,7 @@ class Validator:
         resource specific ones.
 
         """
-        
+
         self.__register_spec(None, validator_spec)
 
     def __register_spec(self, key, spec):
@@ -442,13 +451,14 @@ class Validator:
         def fix_spec(item_spec):
             if isinstance(item_spec, converter_spec):
                 cname, args = item_spec
-                args, kwargs = ((), {}) if args is None \
-                                        else parse_converter_args(args)
+                args, kwargs = ((), {}) \
+                    if args is None \
+                    else parse_converter_args(args)
                 if cname not in app.url_map.converters:
                     return None
 
                 ccls = app.url_map.converters[cname]
-                converter = ccls(app.url_map, *args, **kwargs)                   
+                converter = ccls(app.url_map, *args, **kwargs)
 
                 compiled_re = re.compile(converter.regex)
                 return compiled_re, converter
@@ -466,7 +476,7 @@ class Validator:
                     raise InvalidSpecificationError(
                         "\"{}={!r}\"".format(field, spec)
                     )
-                
+
     def __check_item(self, data, key, item_spec):
         # '89', int -> pass
         # ['58', '84', '58'], [int] -> pass
@@ -498,16 +508,16 @@ class Validator:
             raise InvalidSpecificationError(item_spec)
 
     def __handle_restrictions(self, data):
-        strip_extras =  self.strip_extras.get(ctx.resource.name, False)
+        strip_extras = self.strip_extras.get(ctx.resource.name, False)
         restrictions = self.restriction_specs.get(ctx.resource.name, None)
         if restrictions is None \
-        and self.include_collections \
-        and isinstance(ctx.resource, Collection):
+                and self.include_collections \
+                and isinstance(ctx.resource, Collection):
             restrictions = self.restriction_specs.get(
                 ctx.resource.collects.resource.name,
                 {}
             )
-            strip_extras =  self.strip_extras.get(
+            strip_extras = self.strip_extras.get(
                 ctx.resource.collects.resource.name,
                 False
             )
@@ -521,7 +531,7 @@ class Validator:
                 raise UnexpectedFields(extras, self)
 
             # Check for required fields
-            missing = [field for field,required in restrictions.items()
+            missing = [field for field, required in restrictions.items()
                        if required and field not in data]
             if missing:
                 raise MissingFields(missing, self)
@@ -581,12 +591,13 @@ class Validator:
         else:
             return wrapped.unwrap()
 
+
 class _ContainerWrapper:
-    def __init__(self, container):  
+    def __init__(self, container):
         self._direct = False
         self._orig = container
         self._is_multidict = False
-            
+
         if isinstance(container, Sequence):
             self._c = list(container)
 
@@ -656,16 +667,17 @@ class _ContainerWrapper:
 class InvalidSpecificationError(ValueError):
     """Raised when an invalid specification is used."""
 
+
 class ValidationFailed(BadRequest):
     """
-    Raised whenever a :class:`Validator` fails to validate one or more 
+    Raised whenever a :class:`Validator` fails to validate one or more
     fields.
 
-    This exception is a subclass of :class:`werkzeug.exceptions.BadRequest`, so if allowed
-    to bubble up, findig will send a ``400 BAD REQUEST``
+    This exception is a subclass of :class:`werkzeug.exceptions.BadRequest`,
+    so if allowed to bubble up, findig will send a ``400 BAD REQUEST``
     response automatically.
 
-    Applications can, however, customize the way this exception is 
+    Applications can, however, customize the way this exception is
     handled::
 
         from werkzeug.wrappers import Response
@@ -681,7 +693,7 @@ class ValidationFailed(BadRequest):
             msg = "Failed to convert input data for the following fields: "
             msg += str(e.fields)
             return Response(msg, status=e.status)
-            
+
     """
     def __init__(self, fields, validator):
         super().__init__()
@@ -693,15 +705,18 @@ class ValidationFailed(BadRequest):
         #: The :class:`Validator` instance that raised the exception.
         self.validator = validator
 
+
 class UnexpectedFields(ValidationFailed):
     """
     Raised whenever a resource receives an unexpected input field.
     """
 
+
 class MissingFields(ValidationFailed):
     """
     Raised when a resource does not receive a required field in its input.
     """
+
 
 class InvalidFields(ValidationFailed):
     """
@@ -709,6 +724,5 @@ class InvalidFields(ValidationFailed):
     """
 
 
-
-__all__ = ['Validator', 'InvalidSpecificationError', 'ValidationFailed', 
+__all__ = ['Validator', 'InvalidSpecificationError', 'ValidationFailed',
            'UnexpectedFields', 'MissingFields', 'InvalidFields']

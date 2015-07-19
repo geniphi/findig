@@ -17,7 +17,7 @@ from werkzeug.routing import Map, RuleFactory
 from werkzeug.utils import cached_property
 from werkzeug.wrappers import BaseResponse
 
-from findig.context import *
+from findig.context import ctx
 from findig.dispatcher import Dispatcher
 from findig.wrappers import Request
 
@@ -30,14 +30,13 @@ class App(Dispatcher):
     #: The class used to wrap WSGI environments by this App instance.
     request_class = Request
     # This is used internally to track and clean up context variables
-    local_manager = LocalManager() 
-
+    local_manager = LocalManager()
 
     def __init__(self, autolist=False):
         """
         Create a new App instance.
 
-        :param autolist: If true, a "lister" resource is created and 
+        :param autolist: If true, a "lister" resource is created and
             registered at the URL ``/``. This resource will list all
             of the resources registered with the application which have
             URL rules.
@@ -62,9 +61,9 @@ class App(Dispatcher):
         Register a request context manager for the application.
 
         A request context manager is a function that yields once, that is
-        used to wrap request contexts. It is called at the beginning of a 
-        request context, during which it yields control to Findig, and 
-        regains control sometime after findig processes the request. If 
+        used to wrap request contexts. It is called at the beginning of a
+        request context, during which it yields control to Findig, and
+        regains control sometime after findig processes the request. If
         the function yields a value, it is made available as an
         attribute on :data:`findig.context.ctx` with the same name as the
         function.
@@ -73,7 +72,7 @@ class App(Dispatcher):
 
             >>> from findig.context import ctx
             >>> from findig import App
-            >>> 
+            >>>
             >>> app = App()
             >>> items = []
             >>> @app.context
@@ -117,7 +116,7 @@ class App(Dispatcher):
                 hook()
             except:
                 pass
-        else:            
+        else:
             self.local_manager.cleanup()
 
     def __run_startup_hooks(self):
@@ -146,10 +145,12 @@ class App(Dispatcher):
 
         ctx.app = self
         ctx.url_adapter = adapter = self.url_map.bind_to_environ(environ)
-        ctx.request = self.request_class(environ) # ALWAYS set this after adapter
+
+        # ALWAYS set this after adapter
+        ctx.request = self.request_class(environ)
 
         rule, url_values = adapter.match(return_rule=True)
-        dispatcher = self #self.get_dispatcher(rule)
+        dispatcher = self  # FIXME: self.get_dispatcher(rule)
 
         # Set up context variables
         ctx.url_values = url_values
@@ -182,9 +183,9 @@ class App(Dispatcher):
                 # This will set up request context variables
                 # that are needed by some findig code.
                 do_some_stuff_in_the_request_context()
-            
+
             # After the with statement exits, the request context
-            # variables are cleared. 
+            # variables are cleared.
 
         This method is really just a shortcut for creating a fake
         WSGI environ with :py:class:`werkzeug.test.EnvironBuilder` and
@@ -193,10 +194,10 @@ class App(Dispatcher):
         the arguments given here are passed directly in.
 
         :keyword create_route: Create a URL rule routing to a mock resource,
-            which will match the path of the mock request. This must be set to True if the mock
-            request being generated doesn't already have a route registered
-            for the request path, otherwise this method will raise a
-            :py:class:`werkzeug.exceptions.NotFound` error. 
+            which will match the path of the mock request. This must be set to
+            True if the mock request being generated doesn't already have a
+            route registered for the request path, otherwise this method will
+            raise a :py:class:`werkzeug.exceptions.NotFound` error.
 
         :return: A context manager for a mock request.
         """
@@ -206,11 +207,9 @@ class App(Dispatcher):
             path = args.get('path', '/')
             self.route(lambda: {}, path)
 
-
         ctx.testing = True
         builder = EnvironBuilder(**args)
         return self.build_context(builder.get_environ())
-
 
     def __call__(self, environ, start_response):
         # Set up the application context and run the
@@ -235,7 +234,7 @@ class App(Dispatcher):
         # hooked up to a route, for which we can build URLs.
         endpoints = {}
         adapter = ctx.url_adapter if adapter is None else adapter
-        
+
         for rule in self.url_map.iter_rules():
             endpoints[rule.endpoint] = rule
 

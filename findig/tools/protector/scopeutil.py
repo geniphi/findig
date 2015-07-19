@@ -8,6 +8,7 @@ import re
 #: A special scope item that implicitly encapsulates all other scope items
 ANY = {"$^&#THISISGARBAGE#*@&@#$*@$&DFDF#&#@&@&##*&@DHJGDJH#@&*^@#*+crud"}
 
+
 def normalize_scope_items(scopes, default_mode="r", raise_err=True):
     """
     Return a set of scope items that have been normalized.
@@ -17,7 +18,6 @@ def normalize_scope_items(scopes, default_mode="r", raise_err=True):
 
     .. productionlist:: normalized_scope
         norm_scope : `scope_name`+`permission`
-
 
     Input scope items are assumed to be 'r' by default. Example,
     the scope item ``user`` will normalize to ``user+r``.
@@ -31,13 +31,29 @@ def normalize_scope_items(scopes, default_mode="r", raise_err=True):
     (``user+r``, ``user+u``).
 
     :param scopes: A list of :ref:`scope items <auth-scopes>`.
-    :param default_mode: The permission that should be assumed if one is omitted.
-    :param raise_err: If ``True``, malformed scopes will raise a :class:`ValueError`. Otherwise
-        they are omitted.
+    :param default_mode: The permission that should be assumed if one is
+        omitted.
+    :param raise_err: If ``True``, malformed scopes will raise a
+        :class:`ValueError`. Otherwise they are omitted.
     """
 
     normalized = set()
-    rep = re.compile(r'^(?P<item>(?:[^\W\d_]|[!#-*,-\[\]-~])+)(?:\+(?P<permissions>[crud]+))?$', re.U)
+    rep = re.compile(r'''^                  # Regex matched entire string
+        (?P<item>                           # Capture group for a scope item
+            (?:                             # One or more of any of these:
+                [^\W\d_]                      # alpha numerics or underscore
+                |
+                [!#-*,-\[\]-~]                # Most special ascii characters
+                                              # except: '+' and '\'
+            )+
+        )
+        (?:                                 # The permissions section
+            \+                              # Preceeded by a '+'
+            (?P<permissions>                # followed by one or more of
+                [crud]+                     # 'c' 'r' 'u' or 'd'
+            )
+        )?                                  # Permissions are optional.
+        $''', re.UNICODE | re.VERBOSE)
 
     for item in scopes:
         match = rep.fullmatch(item)
@@ -52,20 +68,21 @@ def normalize_scope_items(scopes, default_mode="r", raise_err=True):
 
     return normalized
 
+
 def check_encapsulates(root, child, sep="/"):
     """
     Check that one scope item encapsulates of another.
 
-    A :token:`scope <auth-scopes>` item encapsulates when it is a super-scope 
+    A :token:`scope <auth-scopes>` item encapsulates when it is a super-scope
     of the other, and when its permissions are a superset of the other's
-    permissions. 
+    permissions.
 
     This is used to implement sub-scopes, where permissions granted on
     a broad scope can be used to imply permissions for a sub-scope. By default,
     sub-scopes are denoted by a preceeding '/'.
 
     For example, a scope permission if ``user+r`` is granted to an agent, then
-    that agent is also implied to have been granted ``user/emails+r``, 
+    that agent is also implied to have been granted ``user/emails+r``,
     ``user/friends+r`` and so on.
 
     :param root: A super-scope
@@ -84,10 +101,13 @@ def check_encapsulates(root, child, sep="/"):
         # checking for scope items with a subset of the permissions.
         rep = re.compile("^{0}$".format(re.escape(root_fragment)), re.U)
     else:
-        root_fragment = root_fragment[:-1] if root_fragment.endswith(sep) else root_fragment
-        # Use a regular expression to verify that the child fragment is indeed a sub
-        # scope of the root fragment. It checks
-        rep = re.compile("^({0})$|({0})/".format(re.escape(root_fragment)), re.U)
+        root_fragment = root_fragment[:-1] \
+            if root_fragment.endswith(sep) \
+            else root_fragment
+        # Use a regular expression to verify that the child fragment is indeed
+        # a sub scope of the root fragment. It checks
+        rep = re.compile("^({0})$|({0})/".format(
+            re.escape(root_fragment)), re.U)
 
     root_permissions = set(root_permissions)
     child_permissions = set(child_permissions)
@@ -101,12 +121,14 @@ def check_encapsulates(root, child, sep="/"):
     else:
         return True
 
+
 def find_encapsulating_scope(scope, scopes, sep="/"):
     for scp in scopes:
         if check_encapsulates(scp, scopes, "/"):
             return scp
     else:
         return None
+
 
 def compress_scope_items(scopes, default_mode="r"):
     """
@@ -140,10 +162,9 @@ def compress_scope_items(scopes, default_mode="r"):
             if item_hash.get(frag, set()).issuperset(permissions):
                 break
         else:
-            if permissions ==  default_permissions:
+            if permissions == default_permissions:
                 compressed.add(fragment)
             else:
                 compressed.add("+".join((fragment, "".join(permissions))))
 
     return compressed
-

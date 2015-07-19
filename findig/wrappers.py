@@ -8,7 +8,7 @@ from findig.utils import DataPipe, tryeach
 
 class Request(Request_):
     """A default request class for wrapping WSGI environs."""
-    
+
     #: The maximum allowed content-length for the requests is set to
     #: 10MB by default.
     max_content_length = 1024 * 1024 * 10

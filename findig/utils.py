@@ -39,6 +39,7 @@ class extremum:
         else:
             return not self.gt
 
+
 def tryeach(funcs, *args, **kwargs):
     """
     Call every item in a list a functions with the same arguments,
@@ -79,7 +80,7 @@ class DataPipe:
     Calling this object with data will pass the data through each one of
     the functions that is has collected, using the result of one function
     as the argument for the next function. For example, if the data pipe
-    ``dpipe`` contains the functions ``[f1, f2, ..., fn]``, then 
+    ``dpipe`` contains the functions ``[f1, f2, ..., fn]``, then
     ``dpipe(data)`` is equivalent to ``fn(...(f2(f1(data))))``.
 
     """

@@ -22,26 +22,29 @@ class _MappedObjMixin:
 
     def __repr__(self):
         clsname = self.__class__.__name__
-        parts = ["{}={!r}".format(c.name, getattr(self, c.name))
-                    for c in self.__table__.columns]
+        parts = [
+            "{}={!r}".format(c.name, getattr(self, c.name))
+            for c in self.__table__.columns
+        ]
         if parts:
             return "<{} {}>".format(clsname, ", ".join(parts))
         else:
             return "<{}>".join(clsname)
 
+
 class SQLA:
     # NOTE ABOUT AUTO-CREATE: it does *not* update a table schema that
     # changes in code to the database side; those changes will have to be
     # manually applied on the database server.
-    def __init__(self, engine, autocommit=False, autoflush=True, 
+    def __init__(self, engine, autocommit=False, autoflush=True,
                  auto_create=True, app=None):
         # Create an SQLAlchemy engine for the database
         if isinstance(engine, str):
             engine = create_engine(engine)
 
         self.engine = engine
-        self._session_cls = sessionmaker(bind=engine, 
-                                         autocommit=autocommit, 
+        self._session_cls = sessionmaker(bind=engine,
+                                         autocommit=autocommit,
                                          autoflush=autoflush)
         self._auto_create = auto_create
         self.Base = declarative_base(bind=engine, cls=_MappedObjMixin)
@@ -115,7 +118,7 @@ class SQLASet(MutableDataSet):
                 if offset:
                     query = query.offset(offset)
                 query = query.limit(count)
-        
+
         yield from map(_SQLRecord, query.all())
 
     def add(self, data):
@@ -131,9 +134,9 @@ class SQLASet(MutableDataSet):
             ctx.sqla_session.commit()
         except Exception as e:
             raise self.CommitError(e)
-        
+
         key = obj.__table__.primary_key
-        return {c.name:getattr(obj, c.name) for c in key}
+        return {c.name: getattr(obj, c.name) for c in key}
 
     def copy(self):
         copy = SQLSet(self._cls)
@@ -164,7 +167,7 @@ class SQLASet(MutableDataSet):
             raise LookupError("No matching records.")
         else:
             return _SQLRecord(obj)
-        
+
     def _filter_query(self, query, *filter_args, **filter_by):
         query = query.filter_by(**filter_by)
         for arg in filter_args:
@@ -177,7 +180,7 @@ class _SQLRecord(MutableRecord):
         self._obj = obj
 
     def read(self):
-        d  = {}
+        d = {}
         for c in self._obj.__class__.__table__.columns:
             d[c.name] = getattr(self._obj, c.name)
         return d
@@ -186,7 +189,7 @@ class _SQLRecord(MutableRecord):
         try:
             for field in remove_fields:
                 setattr(self._obj, field, None)
-        
+
             for k, v in add_data.items():
                 setattr(self._obj, k, v)
 

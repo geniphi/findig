@@ -4,7 +4,7 @@ particular resource. In a typical Findig application, each resource has
 an :class:`AbstractDataModel` attached which has functions defined
 implementing the data operations that are supported by that resource.
 
-By default, :class:`Resources <findig.resource.Resource>` have a 
+By default, :class:`Resources <findig.resource.Resource>` have a
 :class:`DataModel` attached, but this can be replaced with any concrete
 :class:`AbstractDataModel`.
 """
@@ -31,7 +31,7 @@ class AbstractDataModel(Mapping, metaclass=ABCMeta):
     * .. function:: write(data)
         :noindex:
 
-        Replace the resource's existing data with the new data. If 
+        Replace the resource's existing data with the new data. If
         the resource doesn't exist yet, create it.
 
     * .. function:: delete()
@@ -51,7 +51,7 @@ class AbstractDataModel(Mapping, metaclass=ABCMeta):
 
     To implement this abstract base class, do *either* of the following:
 
-    * Implement methods on your subclass with the names 
+    * Implement methods on your subclass with the names
       of the data operations you want your model to support. For example,
       the following model implements read and write actions::
 
@@ -64,7 +64,7 @@ class AbstractDataModel(Mapping, metaclass=ABCMeta):
 
     * Re-implement the mapping interface on your subclasses, such that
       instances will map from a data operation (str) to a function that
-      implements it. This requires implementing ``__iter__``, 
+      implements it. This requires implementing ``__iter__``,
       ``__len__`` and ``__getitem__`` at a minimum. For an example,
       take a look at the source code for this class.
     """
@@ -80,9 +80,9 @@ class AbstractDataModel(Mapping, metaclass=ABCMeta):
             return DictDataModel(self)
 
     def __get_impl_actions(self):
-        return {action: func 
+        return {action: func
                 for action, func in
-                ((a, getattr(self, a, None)) for a in self.all_actions) 
+                ((a, getattr(self, a, None)) for a in self.all_actions)
                 if isinstance(func, Callable)}
 
     def __iter__(self):
@@ -151,8 +151,9 @@ class DataModel(AbstractDataModel, MutableMapping):
         def decorator(func):
             self[action] = func
             return func
-        
+
         return decorator
+
 
 class DataSetDataModel(AbstractDataModel):
     """
@@ -195,4 +196,5 @@ class DataSetDataModel(AbstractDataModel):
             return lambda: self.ds.delete()
 
 
-__all__ = ['AbstractDataModel', 'DictDataModel', 'DataModel', 'DataSetDataModel']
+__all__ = ['AbstractDataModel', 'DictDataModel', 'DataModel',
+           'DataSetDataModel']

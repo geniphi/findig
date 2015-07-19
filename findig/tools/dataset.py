@@ -32,11 +32,14 @@ class AbstractDataSet(Iterable, metaclass=ABCMeta):
         immediately (i.e., the backend isn't hit until the record is
         explicitly queried).
         """
-        if hasattr(ctx, 'request') and ctx.request.method.lower() in ('get', 'head'):
+        allowed_methods = ('get', 'head')
+
+        if hasattr(ctx, 'request') \
+                and ctx.request.method.lower() in allowed_methods:
             # We're inside a GET request, so we can immediately grab a
             # record and return it
             return self.fetch_now(**search_spec)
-            
+
         else:
             # We're not inside a request; we don't wan't to hit the
             # database searching for the record unless the record is
@@ -66,7 +69,7 @@ class AbstractDataSet(Iterable, metaclass=ABCMeta):
         the corresponding argument indicates what it is checked against. If
         the argument is :class:`~collections.abc.Callable`, then it should
         be a predicate that returns ``True`` if the field is valid (be aware
-        that the predicate will passed be ``None`` if the field isn't 
+        that the predicate will passed be ``None`` if the field isn't
         present on the record), otherwise it is compared against the field
         for equality.
         """
@@ -78,14 +81,14 @@ class AbstractDataSet(Iterable, metaclass=ABCMeta):
 
         :param offset: The number of items to skip from the beginning
         :param count: The maximum number of items to return
-        
+
         """
         return DataSetSlice(self, offset, offset+count)
 
     def sorted(self, *sort_spec, descending=False):
         """
         Return a sorted view of this data set.
-        
+
         The method takes a variable number of arguments that specify its
         sort specification.
 
@@ -94,11 +97,12 @@ class AbstractDataSet(Iterable, metaclass=ABCMeta):
 
         Otherwise, the arguments are taken as field names to be sorted,
         in the same order given in the argument list. Records that omit
-        one of these fields appear later in the sorted set than 
+        one of these fields appear later in the sorted set than
         those that don't.
-        
+
         """
         return OrderedDataSet(self, *sort_spec, descending=descending)
+
 
 class MutableDataSet(AbstractDataSet, metaclass=ABCMeta):
     """
@@ -108,6 +112,7 @@ class MutableDataSet(AbstractDataSet, metaclass=ABCMeta):
     @abstractmethod
     def add(self, data):
         """Add a new child item to the data set."""
+
 
 class AbstractRecord(Mapping, metaclass=ABCMeta):
     """
@@ -125,8 +130,8 @@ class AbstractRecord(Mapping, metaclass=ABCMeta):
     def __str__(self):
         return "{{{}}}".format(
             ", ".join("{!r} : {}".format(k, v)
-                      for k,v in self.items())
-        ) 
+                      for k, v in self.items())
+        )
 
     @cached_property
     def cached_data(self):
@@ -138,6 +143,7 @@ class AbstractRecord(Mapping, metaclass=ABCMeta):
         Read the record's data and return a mapping of fields to
         values.
         """
+
 
 class MutableRecord(MutableMapping, AbstractRecord, metaclass=ABCMeta):
     """
@@ -163,7 +169,7 @@ class MutableRecord(MutableMapping, AbstractRecord, metaclass=ABCMeta):
         until :meth:`close_edit_block` is called.
 
         :return: A token that is passed into :meth:`close_edit_block`.
-        
+
         """
         raise NotImplementedError
 
@@ -200,6 +206,7 @@ class MutableRecord(MutableMapping, AbstractRecord, metaclass=ABCMeta):
         Update the record's data with the new data.
         """
 
+
 class LazyRecord(AbstractRecord):
     def __init__(self, func):
         self.func = func
@@ -210,6 +217,7 @@ class LazyRecord(AbstractRecord):
     @cached_property
     def record(self):
         return self.func()
+
 
 class LazyMutableRecord(MutableRecord, LazyRecord):
     def __init__(self, func):
@@ -227,6 +235,7 @@ class LazyMutableRecord(MutableRecord, LazyRecord):
     def delete(self):
         self.record.delete()
 
+
 class FilteredDataSet(AbstractDataSet):
     """
     A concrete implementation of a data set that wraps another data
@@ -234,15 +243,15 @@ class FilteredDataSet(AbstractDataSet):
 
     :param dataset: A dataset that is filtered
     :type dataset: :class:AbstractDataSet
-    
+
     The filter is specified through keyword arguments to the instance.
     Each keyword represents the name of a field that is checked, and
     the corresponding argument indicates what it is checked against. If
     the argument is :class:`~collections.abc.Callable`, then it should
     be a predicate that returns ``True`` if the field is valid (be aware
-    that the predicate will passed be ``None`` if the field isn't 
+    that the predicate will passed be ``None`` if the field isn't
     present on the record), otherwise it is compared against the field
-    for equality. The function :meth:FilteredDataSet.check_match 
+    for equality. The function :meth:FilteredDataSet.check_match
     implements this checking procedure.
     """
 
@@ -258,7 +267,7 @@ class FilteredDataSet(AbstractDataSet):
     def __repr__(self):
         return "<filtered-view({!r})|{}".format(
             self.ds,
-            ",".join("{}={!r}".format(k,v) for k,v in self.fs.items())
+            ",".join("{}={!r}".format(k, v) for k, v in self.fs.items())
         )
 
     @staticmethod
@@ -275,7 +284,7 @@ class FilteredDataSet(AbstractDataSet):
         """
 
         for field, expected in spec.items():
-            val = record.get(field)                
+            val = record.get(field)
             if isinstance(expected, Callable):
                 if not expected(val):
                     return False
@@ -283,6 +292,7 @@ class FilteredDataSet(AbstractDataSet):
                 return False
         else:
             return True
+
 
 class DataSetSlice(AbstractDataSet):
     """
@@ -313,6 +323,7 @@ class DataSetSlice(AbstractDataSet):
             "" if self.stop is None else self.stop
         )
 
+
 class OrderedDataSet(AbstractDataSet):
     """
     A concrete implementation of a data set that wraps another data set
@@ -324,7 +335,8 @@ class OrderedDataSet(AbstractDataSet):
         self.rv = descending
 
     def __iter__(self):
-        yield from sorted(self.ds, key=self.make_key(*self.ss), reverse=self.rv)
+        yield from sorted(
+            self.ds, key=self.make_key(*self.ss), reverse=self.rv)
 
     def __repr__(self):
         return "<sorted-view[{}] of {!r}>".format(

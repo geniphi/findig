@@ -1,6 +1,6 @@
-﻿"""
+"""
 These are helper implementations of content-handling 'functions' for
-parsing, formatting and error-handling. The module exposes 
+parsing, formatting and error-handling. The module exposes
 :class:`Parser`, :class:`Formatter` and :class:`ErrorHandler` respectively,
 each of which acts like a function but introduces some additional
 semantics.
@@ -49,7 +49,7 @@ class ErrorHandler(HandlerAggregator):
     A generic implementation of a error handler 'function'.
 
     A :class:`ErrorHandler` collects handler functions for specific
-    exception types, so that when it is called, it looks up the 
+    exception types, so that when it is called, it looks up the
     appropriate handler for the exception that it is called with.
     The handler used is the closest superclass of the exception's type.
     If no handler was registered for the exception, then it is raised
@@ -134,7 +134,7 @@ class ContentPipe(HandlerAggregator, metaclass=ABCMeta):
     def choose_best_handler(self):
         pass
 
-    
+
 class Formatter(ContentPipe):
     """
     A generic implementation of a formatter 'function'.
@@ -148,12 +148,12 @@ class Formatter(ContentPipe):
 
     def choose_best_handler(self):
         # The best handler for the formatter instance depends on the
-        # request; in particular it relies on what the client has 
+        # request; in particular it relies on what the client has
         # indicated it can accept
 
         # Get the accept header
         accept_header = ctx.request.headers.get("Accept")
-        
+
         if accept_header == "*/*" or accept_header is None:
             if hasattr(self, 'default'):
                 return self.default, self.handlers[self.default]
@@ -183,7 +183,7 @@ class Formatter(ContentPipe):
 
         mime_type = accept.best_match(self.handlers)
 
-        if mime_type is not None:            
+        if mime_type is not None:
             return mime_type, self.handlers[mime_type]
 
         elif "*/*" in accept.values():
@@ -232,10 +232,12 @@ class Parser(ContentPipe):
         )
 
         if content_type in self.handlers:
-            return content_type, partial(self.handlers[content_type], **options)
+            return content_type, partial(
+                self.handlers[content_type], **options)
 
         elif hasattr(self, 'default'):
-            return self.default, partial(self.handlers[self.default], **options)
+            return self.default, partial(
+                self.handlers[self.default], **options)
 
         else:
             raise UnsupportedMediaType

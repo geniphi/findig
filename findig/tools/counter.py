@@ -19,15 +19,17 @@ from werkzeug.utils import validate_arguments
 
 from findig.context import ctx
 
+
 class Counter:
     """
     A :class:`Counter` counter keeps track of hits (requests) made on an
     application and its resources.
 
     :param app: The findig application whose requests the counter will track.
-    :type app: :class:`findig.App`, or a subclass like :class:`findig.json.App`.
-    :param duration: If given, the counter will only track hits that 
-        occurred less than this duration before the current time. 
+    :type app: :class:`findig.App`, or a subclass like
+        :class:`findig.json.App`.
+    :param duration: If given, the counter will only track hits that
+        occurred less than this duration before the current time.
         Otherwise, all hits are tracked.
     :type duration: :class:`datetime.timedelta` or int representing seconds.
     :param storage: A subclass of :class:`AbstractLog` that should be used
@@ -36,13 +38,13 @@ class Counter:
 
     """
 
-    any = [] # just needed an unhashable object here
+    any = []  # just needed an unhashable object here
 
     def __init__(self, app=None, duration=-1, storage=None):
         self.logs = {}
         self.callbacks = {
-            'before': {None:[]},
-            'after': {None:[]},
+            'before': {None: []},
+            'after': {None: []},
         }
         self.duration = duration
         self.partitioners = {}
@@ -61,9 +63,9 @@ class Counter:
         By attaching the counter to a findig application, the counter is
         enabled to wrap count hits to the application and fire callbacks.
 
-        :param app: The findig application whose requests the counter will 
+        :param app: The findig application whose requests the counter will
             track.
-        :type app: :class:`findig.App`, or a subclass like 
+        :type app: :class:`findig.App`, or a subclass like
             :class:`findig.json.App`.
 
         """
@@ -73,7 +75,7 @@ class Counter:
         """
         Create a partition that is tracked by the counter.
 
-        A partition can be thought of as a set of mutually exclusive 
+        A partition can be thought of as a set of mutually exclusive
         groups that hits fall into, such that each hit can only belong to
         one group in any single partition. For example, if we
         partition a counter by the IP address of the requesting clients,
@@ -86,23 +88,23 @@ class Counter:
         grouping function takes a request as its parameter, and returns
         a hashable result that identifies the group. For example, if we
         partition by IP address, our grouping function can either return
-        the IP address's string representation or 32-bit (for IPv4) 
+        the IP address's string representation or 32-bit (for IPv4)
         integer value.
 
         By setting up partitions, we can query a counter for the number of
-        hits belonging to a particular group in any of our partitions. For 
-        example, if we wanted to count the number GET requests, we could 
+        hits belonging to a particular group in any of our partitions. For
+        example, if we wanted to count the number GET requests, we could
         partition the counter on the request method (here our groups would
         be GET, PUT, POST, etc) and query the counter for the number of
         hits in the GET group in our request method partition::
 
             counter = Counter(app)
-           
+
             # Create a partition named 'method', which partitions our
             # hits by the request method (in uppercase).
             counter.partition('method', lambda request: request.method.upper())
 
-            # Now we can query the counter for hits belonging to the 'GET' 
+            # Now we can query the counter for hits belonging to the 'GET'
             # group in our 'method' partition
             hits = counter.hits()
             number_of_gets = hits.count(method='GET')
@@ -153,7 +155,7 @@ class Counter:
         :param until: If given, the callback won't be called after this
             number of hits; it will be called up to and including this
             number of hits.
-        
+
         If partitions have been set up (see :meth:`partition`), additional
         keyword arguments can be given as ``{partition_name}={group}``. In
         this case, the hits are filtered down to those that match the
@@ -173,12 +175,12 @@ class Counter:
             def on_one_hundred(method):
                 pass
 
-        The above code is different from simply ``every(100, callback)`` 
+        The above code is different from simply ``every(100, callback)``
         in that ``every(100, callback)`` will call the callback on every
         100th request received, while the example will call the callback
         of every 100th request of a particular method (every 100th GET,
-        every 100th PUT, every 100th POST etc). 
-        
+        every 100th PUT, every 100th POST etc).
+
         Whenever partition specs are used to register callbacks,
         then the callback must take a named argument matching the
         partition name, which will contain the partition group for the
@@ -198,7 +200,7 @@ class Counter:
         """
         Call a callback after every *n* hits.
 
-        This method works exactly like :meth:`every` except that 
+        This method works exactly like :meth:`every` except that
         callbacks registered with :meth:`every` are called before the
         request is handled (and therefore can throw errors that interupt
         the request) while callbacks registered with this function are
@@ -231,13 +233,15 @@ class Counter:
         """
         Call a callback after the *nth* hit.
 
-        This method works exactly like :meth:`at` except that 
+        This method works exactly like :meth:`at` except that
         callbacks registered with :meth:`at` are called before the
         request is handled (and therefore can throw errors that interupt
         the request) while callbacks registered with this function are
         run after a request has been handled.
         """
-        return self.after_every(1, callback=callback, after=n-1, until=n, **args)
+        return self.after_every(1, callback=callback,
+                                after=n-1, until=n,
+                                **args)
 
     def hits(self, resource=None):
         """
@@ -253,7 +257,7 @@ class Counter:
             # Get the number of hits belonging to a partition group
             counter.hits().count(method='GET')
 
-        The result is also an iterable of (:class:`datetime.datetime`, 
+        The result is also an iterable of (:class:`datetime.datetime`,
         *partition_mapping*) objects.
 
         :param resource: If given, only hits for this resource will be
@@ -261,12 +265,13 @@ class Counter:
         """
         if resource is None:
             return reduce(
-                lambda x,y: x + y, 
-                self.logs.values(), 
+                lambda x, y: x + y,
+                self.logs.values(),
                 self.log_cls(self.duration, None)
             )
         else:
-            self.logs.setdefault(resource.name, self.log_cls(self.duration, resource))
+            self.logs.setdefault(
+                resource.name, self.log_cls(self.duration, resource))
             return self.logs[resource.name]
 
     def __call__(self):
@@ -274,9 +279,13 @@ class Counter:
         request = ctx.request
         resource = ctx.resource
 
-        self.logs.setdefault(resource.name, self.log_cls(self.duration, resource))
+        self.logs.setdefault(
+            resource.name, self.log_cls(self.duration, resource))
         hit_log = self.logs[resource.name]
-        partitions = {name: func(request) for name, func in self.partitioners.items()}
+        partitions = {
+            name: func(request)
+            for name, func in self.partitioners.items()
+        }
         hit_log.track(partitions)
 
         fire_callbacks = partial(self._fire_cb_funcs, hit_log, resource,
@@ -293,19 +302,17 @@ class Counter:
         callbacks.setdefault(resource.name, [])
         callbacks = chain(callbacks[resource.name], callbacks[None])
 
-        #@counter.every(1, after=1000, method=any)
-
         for cb_func, n, args in callbacks:
             # {'ip': counter.any, 'method': 'PUT'}
-            partby = {a:args[a] for a in args if a in self.partitioners}
+            partby = {a: args[a] for a in args if a in self.partitioners}
             # {'ip': '255.215.213.32', 'method': 'GET'}
-            request_vals = {k:partitions[k] for k in partby}
+            request_vals = {k: partitions[k] for k in partby}
             count = hit_log.count(**request_vals)
 
             if partby:
                 # Actually verify that the callback restrictions apply to
                 # this request
-                unmatched = [p for p,v in partby.items() 
+                unmatched = [p for p, v in partby.items()
                              if not (v == self.any or v == partitions[p])]
                 if unmatched:
                     continue
@@ -324,8 +331,8 @@ class AbstractLog(metaclass=ABCMeta):
     """
     Abstract base for a storage class for hit records.
 
-    This module provides a thread-safe, in-memory concrete implementation 
-    that is used by default. 
+    This module provides a thread-safe, in-memory concrete implementation
+    that is used by default.
     """
 
     @abstractmethod
@@ -339,7 +346,8 @@ class AbstractLog(metaclass=ABCMeta):
         :param duration: The length of time for which the log should
             store records. Or if -1 is given, the log should store all
             records indefinitely.
-        :type duration: :class:`datetime.timedelta` or int representing seconds.
+        :type duration: :class:`datetime.timedelta` or int representing
+            seconds.
         :param resource: The resource for which the log will store records.
         """
 
@@ -348,7 +356,7 @@ class AbstractLog(metaclass=ABCMeta):
         """
         Iter the stored hits.
 
-        Each item iterated must be a 2-tuple in the form 
+        Each item iterated must be a 2-tuple in the form
         (:class:`datetime.datetime`, partitions).
 
         """
@@ -398,22 +406,23 @@ class _CompositeLog(AbstractLog):
     def count(self, **partitions):
         return sum(map(lambda l: l.count(**partitions), self._logs))
 
-                
+
 class _HitLog(AbstractLog):
     # This is a storage class that keep track of the hits that have
     # occurred over a given duration.
     # This particular implementation keeps track of hits in-memory.
-    def __init__(self, duration, _): # last argument is resource (or None), but it is unused.
+    def __init__(self, duration, _):
         self._hits = []
-        self._delta = duration if isinstance(duration, timedelta) \
-                               else timedelta(seconds=duration)
+        self._delta = duration \
+            if isinstance(duration, timedelta) \
+            else timedelta(seconds=duration)
         self._thread_lock = Lock()
         self._counter = PyCounter()
 
     def _prune(self):
         if self._delta.total_seconds() < 0:
             # negative seconds means keep everything.
-            return 
+            return
 
         now = datetime.now()
         with self._thread_lock:
@@ -427,7 +436,9 @@ class _HitLog(AbstractLog):
         )
 
         for key_list in sub_keys:
-            counter_key = tuple(sorted(map(lambda k: (k, partitions[k]), key_list)))
+            counter_key = tuple(
+                sorted(map(lambda k: (k, partitions[k]), key_list))
+            )
             yield counter_key
 
     def track(self, partitions):
@@ -461,7 +472,7 @@ class _HitLog(AbstractLog):
 
                 new_log._counter.update(self._counter)
                 new_log._counter.update(other._counter)
-                
+
                 return new_log
 
         else:
@@ -477,4 +488,3 @@ class _HitLog(AbstractLog):
 
     def __repr__(self):
         return "HitLog({})".format(self.count())
-
