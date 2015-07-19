@@ -1,4 +1,3 @@
-from abc import ABCMeta, abstractmethod
 from collections.abc import Callable, Iterable
 from functools import reduce
 import re

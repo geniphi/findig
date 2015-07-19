@@ -1,7 +1,8 @@
 from ast import literal_eval
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from contextlib import contextmanager
 from time import time
+import random
 
 import redis
 
@@ -79,6 +80,8 @@ class RedisObj(MutableRecord):
 
         self.invalidate(new_data=data)
         self.inblock = False
+
+        return ret
 
     def patch(self, add_data, remove_fields, replace=False):
         p = self.r.pipeline()

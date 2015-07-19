@@ -9,13 +9,10 @@ from abc import ABCMeta, abstractmethod
 from collections import Counter as PyCounter, namedtuple
 from datetime import datetime, timedelta
 from itertools import chain, combinations
-from functools import partial, reduce, total_ordering
-from numbers import Integral
+from functools import partial, reduce
 from threading import Lock
 import heapq
 import pickle
-
-from werkzeug.utils import validate_arguments
 
 from findig.context import ctx
 

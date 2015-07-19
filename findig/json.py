@@ -8,7 +8,7 @@ from werkzeug.routing import BuildError as URLBuildError
 from werkzeug.wrappers import Response
 
 from findig import App as App_
-from findig.content import *
+from findig.content import ErrorHandler, Formatter, Parser
 from findig.context import ctx, request
 from findig.dispatcher import Dispatcher as Dispatcher_
 from findig.resource import AbstractResource, Collection, Resource

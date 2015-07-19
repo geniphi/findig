@@ -11,7 +11,7 @@ from werkzeug.datastructures import MultiDict
 from werkzeug.exceptions import BadRequest
 
 from findig.context import ctx
-from findig.tools.dataset import MutableDataSet, MutableRecord, FilteredDataSet
+from findig.tools.dataset import MutableDataSet, MutableRecord
 from findig.utils import to_snake_case
 
 
@@ -139,7 +139,7 @@ class SQLASet(MutableDataSet):
         return {c.name: getattr(obj, c.name) for c in key}
 
     def copy(self):
-        copy = SQLSet(self._cls)
+        copy = SQLASet(self._cls)
         copy._modifiers = self._modifiers[:]
         return copy
 

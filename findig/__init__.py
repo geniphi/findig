@@ -7,14 +7,12 @@ and is a WSGI callable that can be passed to any WSGI complaint server.
 """
 
 from contextlib import contextmanager, ExitStack
-from functools import wraps
 from os.path import join, dirname
 from threading import Lock
 import traceback
 
 from werkzeug.local import LocalManager
-from werkzeug.routing import Map, RuleFactory
-from werkzeug.utils import cached_property
+from werkzeug.routing import Map
 from werkzeug.wrappers import BaseResponse
 
 from findig.context import ctx

@@ -9,13 +9,12 @@ By default, :class:`Resources <findig.resource.Resource>` have a
 :class:`AbstractDataModel`.
 """
 
-from abc import ABCMeta, abstractmethod
 from collections.abc import Callable, Mapping, MutableMapping
 
 from findig.tools.dataset import MutableDataSet, MutableRecord
 
 
-class AbstractDataModel(Mapping, metaclass=ABCMeta):
+class AbstractDataModel(Mapping):
     """
     An object responsible for managing the data for a specific resource.
     Essentially, it is a mapping of data operations to the functions

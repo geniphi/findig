@@ -9,10 +9,10 @@ from functools import partial
 
 from werkzeug.exceptions import MethodNotAllowed, NotFound
 from werkzeug.routing import BuildError as URLBuildError
-from werkzeug.utils import cached_property, validate_arguments
+from werkzeug.utils import validate_arguments
 
 from findig.content import ErrorHandler, Formatter, Parser
-from findig.context import url_adapter, request, ctx
+from findig.context import url_adapter, ctx
 from findig.data_model import DataModel, DataSetDataModel, DictDataModel
 
 
@@ -161,7 +161,7 @@ class Resource(AbstractResource):
         self.formatter = args.get('formatter', Formatter())
 
         if 'error_handler' not in args:
-            args['error_handler'] = eh = ErrorHandler()
+            args['error_handler'] = ErrorHandler()
             args['error_handler'].register(LookupError, self._on_lookup_err)
 
         self.error_handler = args.get('error_handler')

@@ -62,7 +62,7 @@ import re
 
 from werkzeug.datastructures import MultiDict
 from werkzeug.exceptions import BadRequest
-from werkzeug.routing import parse_converter_args, BaseConverter
+from werkzeug.routing import parse_converter_args
 
 from findig.context import ctx
 from findig.resource import AbstractResource, Collection
