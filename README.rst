@@ -1,7 +1,7 @@
 Findig
 ======
 
-|build-status| |docs| |license| |gitter-chat|
+|build-status| |docs| |license| |pypi| |gitter-chat|
 
 Findig is a micro-framework for building HTTP applications. It is based
 on the excellent Werkzeug_ WSGI utility library, and is meant as an
@@ -68,4 +68,9 @@ This project is documented at
 .. |gitter-chat| image:: https://img.shields.io/badge/gitter-support-brightgreen.svg
     :target: https://gitter.im/geniphi/findig
     :alt: Gitter support
+    :scale: 100%
+    
+.. |pypi| image:: https://img.shields.io/pypi/v/Findig.svg
+    :target: https://pypi.python.org/pypi/Findig
+    :alt: Findig on PyPI
     :scale: 100%
