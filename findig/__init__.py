@@ -20,7 +20,9 @@ from findig.dispatcher import Dispatcher
 from findig.wrappers import Request
 
 
-with open(join(dirname(__file__), "VERSION")) as fh:
+with open(join(dirname(__file__), "VERSION.txt")) as fh:
+    #: A :pep:`440` version string identifying the current version of
+    #: Findig.
     __version__ = fh.read().strip()
 
 

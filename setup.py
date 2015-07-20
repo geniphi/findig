@@ -12,7 +12,7 @@ def read(filename, encoding="utf-8"):
 
 setup(
     name="Findig",
-    version=read("findig/VERSION").strip(),
+    version=None, # we're using an auto-generated version
 
     description="A micro-framework for RESTful web applications.",
     long_description=read("DESCRIPTION.rst"),
@@ -40,11 +40,11 @@ setup(
     packages=find_packages(exclude=["test*",]),
 
     package_data={
-        'findig': ['VERSION'],
+        'findig': ['VERSION.txt'],
     },
 
     setup_requires=['setuptools_scm'],
-    use_setuptools_scm={'write_to': 'findig/VERSION'},
+    use_scm_version={'write_to': 'findig/VERSION.txt'},
 
     install_requires=['werkzeug'],
     extras_require={

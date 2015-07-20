@@ -79,8 +79,10 @@ copyright = u'2014, Te-jé Rodgers'
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
-with open(join(dirname(__file__), "../findig/VERSION")) as fh:
-    version = release = fh.read().strip()
+with open(join(dirname(__file__), "../findig/VERSION.txt")) as fh:
+    release = release = fh.read().strip()
+    
+version = ".".join(release.split(".")[:2])
 
 # The short X.Y version.
 #version = '0.1'
