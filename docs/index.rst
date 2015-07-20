@@ -49,10 +49,11 @@ things done with Findig, as well as some notes on its design.
    quickstart
    tutorial
 
+
 API Documentation
 -----------------
 
-This section isn't ready yet. Please check back later.
+This section contains a reference for Findig's public API.
 
 .. toctree::
    :maxdepth: 2
@@ -61,3 +62,14 @@ This section isn't ready yet. Please check back later.
    api/tools/index
    api/extras
    api/utils
+
+
+Community Guidelines
+--------------------
+
+Guidlines for contributing to Findig's community.
+
+.. toctree::
+   :maxdepth: 2
+
+   contributing/index
