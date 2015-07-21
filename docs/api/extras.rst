@@ -10,3 +10,4 @@ rely on additional third-party libraries being present in order to work.
     :maxdepth: 2
 
     redis
+    sql
