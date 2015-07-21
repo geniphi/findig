@@ -64,12 +64,19 @@ This section contains a reference for Findig's public API.
    api/utils
 
 
-Community Guidelines
---------------------
+Additional Information
+----------------------
 
-Guidlines for contributing to Findig's community.
+Miscellaneous information that you may be looking for.
 
 .. toctree::
    :maxdepth: 2
 
    contributing/index
+   changelog
+
+Use these indices to search if you can't find what you're looking for:
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
