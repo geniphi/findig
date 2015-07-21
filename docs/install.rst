@@ -46,14 +46,15 @@ for the extra feature to work.
 
 Here's a list of all the supported extra features:
 
-============ ========================= ======================
-Feature name Description               Installed Requirements
-============ ========================= ======================
-redis        Redis data set support    redis
------------- ------------------------- ----------------------
-sql          Support for SQLAlchemy    SQLAlchemy
-             tables and data sets       
-============ ========================= ======================
+============ ========================================== ======================
+Feature name Description                                Installed Requirements
+============ ========================================== ======================
+redis        :doc:`Redis data set support \             redis
+             </api/redis>`
+------------ ------------------------------------------ ----------------------
+sql          :doc:`Support for SQLAlchemy tables and \  SQLAlchemy
+             sets </api/sql>` 
+============ ========================================== ======================
 
 Getting the source code
 -----------------------
